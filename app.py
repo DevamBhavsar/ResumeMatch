@@ -148,4 +148,4 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)  # If you still get reloader issues, try use_reloader=False
+    app.run(debug=True)
