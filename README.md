@@ -4,109 +4,101 @@ A Flask-based web application that analyzes resumes against job descriptions usi
 
 ## Features
 
-- PDF resume parsing and text extraction
-- Job description analysis
-- Skill extraction and matching
-- Similarity scoring using TF-IDF and cosine similarity
-- Results storage in MongoDB
-- Web interface for easy submission and analysis
+- **Resume Parsing**: Extracts text from PDF, DOCX, and TXT files.
+- **Job Description Analysis**: Extracts skills, requirements, and experience levels from job descriptions.
+- **Skill Matching**: Compares resume skills with job description skills.
+- **Similarity Scoring**: Calculates text similarity using TF-IDF, cosine similarity, and semantic similarity.
+- **Web Interface**: User-friendly interface for uploading resumes and job descriptions.
+- **Detailed Results**: Displays overall match score, skill match percentage, matching skills, and missing skills.
 
 ## Technical Stack
 
-- Python 3.8+
-- Flask (Web Framework)
-- spaCy (Natural Language Processing)
-- scikit-learn (Text Analysis)
-- PyPDF2 (PDF Processing)
-- MongoDB (Data Storage)
+- **Backend**: Flask (Python)
+- **NLP**: spaCy, scikit-learn
+- **File Processing**: PyPDF2, python-docx
+- **Frontend**: HTML, CSS, JavaScript
+- **Deployment**: Docker, Gunicorn
 
 ## Prerequisites
 
 Before running the application, ensure you have:
 
-1. Python 3.8 or higher installed
-2. MongoDB installed and running locally
-3. Required Python packages (see requirements.txt)
-4. spaCy's English language model
+1. Python 3.8 or higher installed.
+2. Required Python packages (see `requirements.txt`).
+3. spaCy's English language model (`en_core_web_md`).
 
 ## Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/DevamBhavsar/ResumeMatch.git
-cd ResumeMatch
-```
+
+   ```bash
+   git clone https://github.com/DevamBhavsar/ResumeMatch.git
+   cd ResumeMatch
+   ```
 
 2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
-```
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+   ```
 
 3. Install required packages:
-```bash
-pip install -r requirements.txt
-```
+
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 4. Download the spaCy model:
-```bash
-python -m spacy download en_core_web_lg
-```
-
-5. Ensure MongoDB is running on your system:
-```bash
-mongod  # Start MongoDB server
-```
+   ```bash
+   python -m spacy download en_core_web_md
+   ```
 
 ## Usage
 
 1. Start the application:
-```bash
-python app.py
-```
+
+   ```bash
+   python app.py
+   ```
 
 2. Open your web browser and navigate to:
-```
-http://localhost:5000
-```
 
-3. Upload a PDF resume and enter the job description in the provided form.
+   ```
+   http://localhost:5000
+   ```
+
+3. Upload a resume (PDF, DOCX, or TXT) and paste a job description in the provided form.
 
 4. View the analysis results, including:
-   - Overall similarity score
-   - Skills match percentage
-   - Matching skills list
-   - Missing skills list
-   - Complete skill analysis
+   - Overall match score
+   - Skill match percentage
+   - Matching skills
+   - Missing skills
+   - Text similarity and semantic similarity scores
 
-## API Endpoints
+## Deployment with Docker
 
-### POST /analyze
-Analyzes a resume against a job description.
+1. Build the Docker image:
 
-Request format:
-- Method: POST
-- Content-Type: multipart/form-data
-- Parameters:
-  - resume: PDF file
-  - jobDescription: string
+   ```bash
+   docker build -t resume-match .
+   ```
 
-Response format:
-```json
-{
-    "overall_score": float,
-    "skills_match_percentage": float,
-    "matching_skills": [string],
-    "missing_skills": [string],
-    "resume_skills": [string],
-    "jd_skills": [string],
-    "timestamp": string,
-    "_id": string
-}
-```
+2. Run the Docker container:
+
+   ```bash
+   docker run -p 5000:5000 resume-match
+   ```
+
+3. Access the application at:
+   ```
+   http://localhost:5000
+   ```
+
 ## Acknowledgments
 
-- spaCy for providing excellent NLP capabilities
-- scikit-learn for TF-IDF and similarity calculations
-- Flask for the web framework
-- PyPDF2 for PDF processing capabilities
+- **spaCy**: For NLP capabilities.
+- **scikit-learn**: For TF-IDF and similarity calculations.
+- **Flask**: For the web framework.
+- **PyPDF2** and **python-docx**: For file parsing.
