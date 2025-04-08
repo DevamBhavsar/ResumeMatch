@@ -1,5 +1,5 @@
 import logging
-
+import json
 logger = logging.getLogger(__name__)
 
 class MatchingService:
@@ -28,6 +28,8 @@ class MatchingService:
             # Calculate matching score
             result = self.matcher.get_matching_score(resume_data, jd_data)
             logger.info(f"Match score calculated: {result['overall_score']}%")
+            
+            logger.info(f"Skill strengths data: {json.dumps(result['skill_strengths'])}")
             
             return result
         except Exception as e:

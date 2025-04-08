@@ -5,6 +5,7 @@ python-magic>=0.4.24
 PyPDF2>=2.0.0
 python-docx>=0.8.11
 gunicorn>=20.1.0
+reportlab
 
 # NLP and ML dependencies
 spacy>=3.5.0

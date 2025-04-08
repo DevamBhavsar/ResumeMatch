@@ -87,6 +87,20 @@
         </div>
       </div>
 
+      <div class="skill-chart-container">
+        <h2>Skill Gap Analysis</h2>
+        <div style="position: relative; height: 300px;">
+        <canvas id="skillGapChart"></canvas>
+      </div>
+</div>
+
+      <div class="radar-chart-container">
+        <h2>Skill Radar Analysis</h2>
+        <div style="position: relative; height: 300px;">
+          <canvas id="skillRadarChart"></canvas>
+        </div>
+      </div>
+
       <div class="recommendation-container">
         <h2>Recommendations</h2>
         <div class="recommendation">
@@ -130,10 +144,18 @@
   </div>
 </div>
 
-    <!-- Add these before the closing body tag -->
+    
+<script id="skill-strengths-data" type="application/json">
+  {% if result.skill_strengths %}
+    {{ result.skill_strengths|tojson }}
+  {% else %}
+    {}
+  {% endif %}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 
   </body>
 </html>

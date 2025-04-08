@@ -1,6 +1,7 @@
 import spacy
 import numpy as np
 import logging
+import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -148,6 +149,9 @@ class ResumeMatcher:
                 resume_data["text"], jd_data["text"]
             )
 
+            # Calculate skill strengths
+            skill_strengths = self.calculate_skill_strength(resume_data["text"], matching_skills)
+
             # Calculate overall score (weighted)
             # 60% skill match, 20% text similarity, 20% semantic similarity
             overall_score = (
@@ -166,6 +170,7 @@ class ResumeMatcher:
                 "missing_skills": missing_skills,
                 "resume_skills": resume_data["skills"],
                 "jd_skills": jd_data["skills"],
+                "skill_strengths": skill_strengths
             }
 
             return result
@@ -180,4 +185,28 @@ class ResumeMatcher:
                 "missing_skills": [],
                 "resume_skills": [],
                 "jd_skills": [],
+                "skill_strengths": {}
             }
+
+    def calculate_skill_strength(self, resume_text, skills):
+        """Calculate the strength of each skill based on frequency and context"""
+        skill_strengths = {}
+        
+        for skill in skills:
+            # Count occurrences
+            pattern = r'\b' + re.escape(skill) + r'\b'
+            occurrences = len(re.findall(pattern, resume_text, re.IGNORECASE))
+        
+            # Basic strength calculation
+            if occurrences == 0:
+                strength = 0
+            elif occurrences == 1:
+                strength = 60  # Basic mention
+            elif occurrences == 2:
+                strength = 80  # Multiple mentions
+            else:
+                strength = 100  # Many mentions
+            
+            skill_strengths[skill] = strength
+        
+        return skill_strengths

@@ -93,6 +93,7 @@ button:hover {
     padding: 20px;
 }
 
+/* Score Circle Enhancements */
 .score-circle {
     width: 150px;
     height: 150px;
@@ -103,15 +104,95 @@ button:hover {
     justify-content: center;
     font-size: 30px;
     font-weight: bold;
-    color: white;
     position: relative;
     /* Default value for --score */
     --score: 0;
     background: conic-gradient(#3498db 0%, #3498db calc(var(--score) * 3.6deg), #f1f1f1 calc(var(--score) * 3.6deg), #f1f1f1 360deg);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    transition: transform 0.5s ease, box-shadow 0.5s ease;
+    animation: scoreCirclePulse 2s ease-in-out;
 }
 
+.score-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.score-circle::before {
+    content: '';
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background-color: var(--container-bg);
+    z-index: 1;
+    animation: scoreCircleInner 1s ease-out;
+}
+
+/* Add this new style for the score text */
 .score-text {
     z-index: 2;
+    position: relative;
+    padding: 10px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scoreTextFadeIn 1.5s ease-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Score Circle Animations */
+@keyframes scoreCirclePulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes scoreCircleInner {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes scoreTextFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fillAnimation {
+    0% {
+        background: conic-gradient(var(--fill-color) 0deg, #f1f1f1 0deg);
+    }
+    100% {
+        background: conic-gradient(var(--fill-color) calc(var(--score) * 3.6deg), #f1f1f1 calc(var(--score) * 3.6deg));
+    }
 }
 
 .detail-scores {
@@ -399,5 +480,61 @@ a.btn {
 @media (max-width: 768px) {
   .cover-letter-actions {
     flex-direction: column;
+  }
+}
+
+/* Add this to your existing CSS file */
+.skill-chart-container {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: var(--container-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.skill-chart-container h2 {
+  margin-bottom: 20px;
+  color: var(--heading-color);
+}
+
+#skillGapChart {
+  max-width: 100%;
+  height: 300px;
+  margin: 0 auto;
+}
+
+/* Make sure the chart is responsive */
+@media (min-width: 768px) {
+  #skillGapChart {
+    max-width: 500px;
+  }
+}
+
+/* Add this to your existing CSS file */
+.radar-chart-container {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: var(--container-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.radar-chart-container h2 {
+  margin-bottom: 20px;
+  color: var(--heading-color);
+}
+
+#skillRadarChart {
+  max-width: 100%;
+  height: 300px;
+  margin: 0 auto;
+}
+
+/* Make sure the chart is responsive */
+@media (min-width: 768px) {
+  #skillRadarChart {
+    max-width: 500px;
   }
 }
