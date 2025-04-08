@@ -110,11 +110,30 @@
         </div>
       </div>
 
+      <!-- Cover Letter Generator Button -->
       <div class="action-buttons">
-        <a href="/" class="btn">Try Another</a>
+        <button id="generate-cover-letter" class="btn btn-primary">
+          Generate Cover Letter
+        </button>
+        <a href="/" class="btn btn-secondary">Try Another</a>
       </div>
-    </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+      <!-- Cover Letter Container (initially hidden) -->
+<div id="cover-letter-container" class="cover-letter-container" style="display: none;">
+  <h2>Generated Cover Letter</h2>
+  <p>Edit this template to personalize your cover letter:</p>
+  <textarea id="cover-letter-text" class="cover-letter-text"></textarea>
+  <div class="cover-letter-actions">
+    <button id="copy-cover-letter" class="btn copy-btn">Copy to Clipboard</button>
+    <button id="download-word" class="btn download-btn word-btn">Download as Word</button>
+    <button id="download-pdf" class="btn download-btn pdf-btn">Download as PDF</button>
+  </div>
+</div>
+
+    <!-- Add these before the closing body tag -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
   </body>
 </html>
