@@ -1,230 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resume Scorer</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background-color: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    h1 {
-      color: #333;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: #555;
-    }
-    textarea {
-      width: 100%;
-      min-height: 200px;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      resize: vertical;
-    }
-    .file-input {
-      margin-bottom: 20px;
-    }
-    button {
-      background-color: #4caf50;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    .results {
-      margin-top: 30px;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      display: none;
-    }
-    .score {
-      font-size: 24px;
-      font-weight: bold;
-      color: #4caf50;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .skills-section {
-      margin-top: 20px;
-    }
-    .skills-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .skill-tag {
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 14px;
-    }
-    .loading {
-      display: none;
-      text-align: center;
-      margin-top: 20px;
-    }
-    /* Style for the resume preview container */
-    #previewContainer {
-      margin-bottom: 100px;
-      display: none;
-    }
-    #resumePreview {
-        width: 100%; /* or a fixed width like 800px */
-        height: 600px; /* increase the height as needed */
-        border: 1px solid #ddd;
-        border-radius: 4px;
-}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Resume Scorer</h1>
-    <form id="scoreForm">
-      <div class="form-group">
-        <label for="resume">Upload Resume (PDF)</label>
-        <input type="file" id="resume" name="resume" accept=".pdf" required class="file-input" />
-      </div>
-      <!-- Resume preview container -->
-      <div id="previewContainer">
-        <h4>Resume Preview:</h4>
-        <iframe id="resumePreview"></iframe>
-      </div>
-      <div class="form-group">
-        <label for="jobDescription">Job Description</label>
-        <textarea id="jobDescription" name="jobDescription" required></textarea>
-      </div>
-      <button type="submit">Analyze Resume</button>
-    </form>
-    <div class="loading">Analyzing resume... Please wait...</div>
-    <div class="results">
-      <div class="score">
-        Overall Match: <span id="overallScore">0</span>%
-      </div>
-      <div class="skills-section">
-        <h3>Skills Match: <span id="skillsScore">0</span>%</h3>
-      </div>
-      <!-- Section to display all resume skills -->
-      <div class="skills-section">
-        <h4>Resume Skills:</h4>
-        <div id="resumeSkills" class="skills-list"></div>
-      </div>
-      <!-- Section to display all job description skills with color coding -->
-      <div class="skills-section">
-        <h4>Job Description Skills:</h4>
-        <div id="jdSkills" class="skills-list"></div>
-      </div>
-      <!-- (Optional) Matching/Missing skills -->
-      <div class="skills-section">
-        <h4>Matching Skills:</h4>
-        <div id="matchingSkills" class="skills-list"></div>
-      </div>
-      <div class="skills-section">
-        <h4>Missing Skills:</h4>
-        <div id="missingSkills" class="skills-list"></div>
-      </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume-JD Matcher</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Resume-Job Description Matcher</h1>
+      <p>
+        Upload your resume and paste a job description to calculate your match
+        score!
+      </p>
+
+      <form
+        id="matching_form"
+        action="/upload"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="resume">Upload Resume (PDF, DOCX, or TXT):</label>
+          <input
+            type="file"
+            id="resume"
+            name="resume"
+            accept=".pdf,.docx,.txt"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="job_description">Paste Job Description:</label>
+          <textarea
+            id="job_description"
+            name="job_description"
+            rows="10"
+            required
+            placeholder="Paste the full job description here..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <button type="submit">Calculate Match</button>
+        </div>
+      </form>
     </div>
-  </div>
-  <script>
-    // Show PDF preview when a file is selected
-    document.getElementById('resume').addEventListener('change', function () {
-      const file = this.files[0];
-      if (file && file.type === 'application/pdf') {
-        const fileURL = URL.createObjectURL(file);
-        document.getElementById('resumePreview').src = fileURL;
-        document.getElementById('previewContainer').style.display = 'block';
-      } else {
-        document.getElementById('previewContainer').style.display = 'none';
-      }
-    });
 
-    // Form submission and result display
-    document.getElementById('scoreForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData();
-      const resumeFile = document.getElementById('resume').files[0];
-      const jobDescription = document.getElementById('jobDescription').value;
-      formData.append('resume', resumeFile);
-      formData.append('jobDescription', jobDescription);
-
-      // Show loading state
-      document.querySelector('.loading').style.display = 'block';
-      document.querySelector('.results').style.display = 'none';
-
-      try {
-        const response = await fetch('/analyze', {
-          method: 'POST',
-          body: formData,
-        });
-        const result = await response.json();
-
-        if (response.ok) {
-          // Update overall scores
-          document.getElementById('overallScore').textContent = result.overall_score;
-          document.getElementById('skillsScore').textContent = result.skills_match_percentage;
-
-          // Update matching skills (optional)
-          document.getElementById('matchingSkills').innerHTML = result.matching_skills
-            .map((skill) => `<span class="skill-tag" style="background-color:#4caf50; color: white;">${skill}</span>`)
-            .join('');
-          // Update missing skills (optional)
-          document.getElementById('missingSkills').innerHTML = result.missing_skills
-            .map((skill) => `<span class="skill-tag" style="background-color:#f44336; color: white;">${skill}</span>`)
-            .join('');
-
-          // Display all resume skills
-          document.getElementById('resumeSkills').innerHTML = result.resume_skills
-            .map((skill) => `<span class="skill-tag" style="background-color:#e0e0e0;">${skill}</span>`)
-            .join('');
-
-          // Display all job description skills with conditional coloring:
-          // Green if the skill is present in the resume, Red if not.
-          document.getElementById('jdSkills').innerHTML = result.jd_skills
-            .map((skill) => {
-              const isPresent = result.resume_skills.includes(skill);
-              const bgColor = isPresent ? '#4caf50' : '#f44336';
-              return `<span class="skill-tag" style="background-color:${bgColor}; color: white;">${skill}</span>`;
-            })
-            .join('');
-
-          // Show results section
-          document.querySelector('.results').style.display = 'block';
-        } else {
-          alert('Error: ' + result.error);
-        }
-      } catch (error) {
-        alert('Error analyzing resume: ' + error.message);
-      } finally {
-        document.querySelector('.loading').style.display = 'none';
-      }
-    });
-  </script>
-</body>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
 </html>

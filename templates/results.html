@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Match Results - Resume-JD Matcher</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container results-container">
+      <h1>Match Results</h1>
+
+      <div class="score-container">
+        <div class="overall-score">
+          <h2>Overall Match Score</h2>
+          <div
+            class="score-circle"
+            id="overall-score"
+            data-score="{{ result.overall_score }}"
+          >
+            <span class="score-text">{{ result.overall_score }}%</span>
+          </div>
+        </div>
+
+        <div class="detail-scores">
+          <div class="score-item">
+            <h3>Skill Match</h3>
+            <div
+              class="score-bar"
+              data-score="{{ result.skill_match }}"
+              style="width: 0%"
+            >
+              {{ result.skill_match }}%
+            </div>
+          </div>
+
+          <div class="score-item">
+            <h3>Text Similarity</h3>
+            <div
+              class="score-bar"
+              data-score="{{ result.text_similarity }}"
+              style="width: 0%"
+            >
+              {{ result.text_similarity }}%
+            </div>
+          </div>
+
+          <div class="score-item">
+            <h3>Semantic Similarity</h3>
+            <div
+              class="score-bar"
+              data-score="{{ result.semantic_similarity }}"
+              style="width: 0%"
+            >
+              {{ result.semantic_similarity }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="skills-container">
+        <div class="skills-section">
+          <h2>Matching Skills</h2>
+          <div class="skills-list">
+            {% if result.matching_skills %} {% for skill in
+            result.matching_skills %}
+            <span class="skill-tag match">{{ skill }}</span>
+            {% endfor %} {% else %}
+            <p>No matching skills found.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="skills-section">
+          <h2>Missing Skills</h2>
+          <div class="skills-list">
+            {% if result.missing_skills %} {% for skill in result.missing_skills
+            %}
+            <span class="skill-tag missing">{{ skill }}</span>
+            {% endfor %} {% else %}
+            <p>No missing skills! Great job!</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="recommendation-container">
+        <h2>Recommendations</h2>
+        <div class="recommendation">
+          {% if result.overall_score >= 80 %}
+          <p>
+            You're a strong match for this position! Consider highlighting your
+            matching skills in your application.
+          </p>
+          {% elif result.overall_score >= 60 %}
+          <p>
+            You're a good match for this position, but might want to address
+            some of the missing skills in your application.
+          </p>
+          {% else %}
+          <p>
+            This position may require more skills than currently demonstrated on
+            your resume. Consider acquiring the missing skills or highlighting
+            transferable skills.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <a href="/" class="btn">Try Another</a>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>

@@ -170,6 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-keywords.json
+# keywords.json
 NLP.sublime-project
 NLP.sublime-workspace
+data/processed
+uploads
