@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Batch Resume Matcher</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/batch.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Multiple Resume Matcher</h1>
+      <p>
+        Upload multiple resumes and match them against a job description to find
+        the best candidates!
+      </p>
+
+      <div class="tabs">
+        <a href="/" class="tab">Single Resume</a>
+        <a href="/batch" class="tab active">Multiple Resumes</a>
+      </div>
+
+      <form
+        id="batch_matching_form"
+        action="/batch-upload"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="resumes"
+            >Upload Multiple Resumes (PDF, DOCX, or TXT):</label
+          >
+          <div class="dropzone" id="resume-dropzone">
+            <input
+              type="file"
+              id="resumes"
+              name="resumes"
+              accept=".pdf,.docx,.txt"
+              multiple
+              required
+            />
+            <div class="dropzone-prompt">
+              <i class="upload-icon">📄</i>
+              <p>Drag & drop files here or click to browse</p>
+              <p class="small">Maximum 10 files, 5MB each</p>
+            </div>
+          </div>
+
+          <!-- Files Preview Container -->
+          <div id="files-preview" class="files-preview"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="job_description">Paste Job Description:</label>
+          <textarea
+            id="job_description"
+            name="job_description"
+            rows="10"
+            required
+            placeholder="Paste the full job description here..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Rank Candidates</button>
+        </div>
+      </form>
+      <!-- Add this right after the form -->
+      <div
+        id="loading-indicator"
+        class="loading-container"
+        style="display: none"
+      >
+        <div class="loading-spinner"></div>
+        <p>Processing resumes... This may take a moment.</p>
+      </div>
+    </div>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/batch.js') }}"
+    ></script>
+  </body>
+</html>

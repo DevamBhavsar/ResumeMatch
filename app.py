@@ -1,4 +1,5 @@
 import logging
+import os
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
 
 from config import Config
@@ -9,6 +10,7 @@ from utils.jd_parser import JobDescriptionParser
 from utils.matcher import ResumeMatcher
 from utils.document_generator import DocumentGenerator
 from services.matching_service import MatchingService
+from services.batch_matching_service import BatchMatchingService
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +33,7 @@ try:
     jd_parser = JobDescriptionParser(Config.SKILLS_DB_PATH)
     matcher = ResumeMatcher()
     matching_service = MatchingService(resume_parser, jd_parser, matcher)
+    batch_matching_service = BatchMatchingService(resume_parser, jd_parser, matcher)
     logger.info("Initialized application components successfully")
 except Exception as e:
     logger.error(f"Error initializing components: {e}")
@@ -39,6 +42,10 @@ except Exception as e:
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/batch")
+def batch_upload():
+    return render_template("batch_upload.html")
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -85,10 +92,75 @@ def upload_file():
         # Clean up temporary files
         file_handler.cleanup_temp_files(filepath, temp_dir)
 
+        
         return render_template("results.html", result=result)
 
     except Exception as e:
         return ErrorHandler.handle_file_upload_error(e, filepath, temp_dir, file_handler)
+
+@app.route("/batch-upload", methods=["POST"])
+def batch_upload_files():
+    temp_dirs = []
+    filepaths = []
+
+    try:
+        if "resumes" not in request.files:
+            logger.warning("No resume files in request")
+            return jsonify({"error": "No resume files uploaded"}), 400
+
+        files = request.files.getlist("resumes")
+        job_description = request.form.get("job_description", "")
+
+        if not files or len(files) == 0 or files[0].filename == "":
+            logger.warning("No files selected")
+            return jsonify({"error": "No files selected"}), 400
+
+        if len(files) > Config.MAX_RESUMES:
+            logger.warning(f"Too many files: {len(files)}")
+            return jsonify({"error": f"Maximum {Config.MAX_RESUMES} files allowed"}), 400
+
+        if job_description == "":
+            logger.warning("Empty job description submitted")
+            return jsonify({"error": "No job description provided"}), 400
+
+        # Process each file
+        for file in files:
+            # Check allowed file extensions
+            if not file_handler.allowed_file(file.filename):
+                logger.warning(f"Unsupported file type: {file.filename}")
+                continue
+
+            # Create secure temporary file
+            filepath, temp_dir = file_handler.secure_temp_file(file)
+            filepaths.append(filepath)
+            temp_dirs.append(temp_dir)
+
+            # Save the file
+            file.save(filepath)
+            
+            # Validate file content
+            file_ext = file.filename.rsplit(".", 1)[1].lower()
+            if not file_handler.validate_file_content(filepath, file_ext):
+                logger.warning(f"Invalid file content: {file.filename}")
+                continue
+
+        if not filepaths:
+            return jsonify({"error": "No valid files uploaded"}), 400
+
+        # Process the batch match
+        results = batch_matching_service.process_batch_match(filepaths, job_description)
+
+        # Clean up temporary files
+        for filepath, temp_dir in zip(filepaths, temp_dirs):
+            file_handler.cleanup_temp_files(filepath, temp_dir)
+
+        return render_template("batch_results.html", results=results, job_description=job_description)
+
+    except Exception as e:
+        # Clean up on error
+        for filepath, temp_dir in zip(filepaths, temp_dirs):
+            file_handler.cleanup_temp_files(filepath, temp_dir)
+        return ErrorHandler.handle_file_upload_error(e)
 
 @app.route('/js/lib/<path:filename>')
 def serve_js_lib(filename):

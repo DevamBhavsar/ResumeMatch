@@ -24,6 +24,9 @@ class Config:
     NLP_MODEL = "en_core_web_md"
     MAX_TEXT_LENGTH = 100000
     
+    # Multiple resume settings
+    MAX_RESUMES = 10  # Maximum number of resumes to process at once
+    
     # Ensure required directories exist
     @classmethod
     def init_app(cls):

@@ -8,6 +8,10 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/batch.css') }}"
+    />
   </head>
   <body>
     <div class="container">
@@ -16,6 +20,11 @@
         Upload your resume and paste a job description to calculate your match
         score!
       </p>
+
+      <div class="tabs">
+        <a href="/" class="tab active">Single Resume</a>
+        <a href="/batch" class="tab">Multiple Resumes</a>
+      </div>
 
       <form
         id="matching_form"
@@ -48,7 +57,7 @@
         </div>
 
         <div class="form-group">
-          <button type="submit">Calculate Match</button>
+          <button type="submit" class="btn btn-primary">Calculate Match</button>
         </div>
       </form>
     </div>
