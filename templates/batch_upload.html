@@ -12,6 +12,56 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/batch.css') }}"
     />
+    <!-- Add this CSS to the head section -->
+    <style>
+      .file-details {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .file-meta {
+        display: flex;
+        align-items: center;
+        margin-top: 0.25rem;
+      }
+
+      .file-type-summary {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: var(--container-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .summary-title {
+        font-weight: bold;
+        margin-right: 0.75rem;
+      }
+
+      .summary-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* Add a clear all button */
+      .clear-files {
+        margin-top: 0.5rem;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 0.85rem;
+        text-decoration: underline;
+      }
+
+      .clear-files:hover {
+        color: var(--danger-color);
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -54,6 +104,11 @@
 
           <!-- Files Preview Container -->
           <div id="files-preview" class="files-preview"></div>
+
+          <!-- File Counter -->
+          <div id="file-counter" class="file-counter" style="display: none">
+            <span id="file-count">0</span> files selected
+          </div>
         </div>
 
         <div class="form-group">
@@ -71,7 +126,8 @@
           <button type="submit" class="btn btn-primary">Rank Candidates</button>
         </div>
       </form>
-      <!-- Add this right after the form -->
+
+      <!-- Loading indicator -->
       <div
         id="loading-indicator"
         class="loading-container"
@@ -79,6 +135,7 @@
       >
         <div class="loading-spinner"></div>
         <p>Processing resumes... This may take a moment.</p>
+        <p class="small">Analyzing skills and calculating match scores...</p>
       </div>
     </div>
 
