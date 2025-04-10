@@ -2,9 +2,17 @@ export function generateCoverLetter() {
   const coverLetterContainer = document.getElementById(
     "cover-letter-container"
   );
-  const coverLetterText = document.getElementById("cover-letter-text");
+  const capitalizeFirstLetter = (str) => {
+    if (!str) {
+      return "";
+    }
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+  const coverLetterEditorContainer = document.getElementById(
+    "cover-letter-editor-container"
+  );
 
-  if (!coverLetterContainer || !coverLetterText) return;
+  if (!coverLetterContainer || !coverLetterEditorContainer) return;
 
   // Show the container
   coverLetterContainer.style.display = "block";
@@ -16,9 +24,6 @@ export function generateCoverLetter() {
   const missingSkills = Array.from(
     document.querySelectorAll(".skill-tag.missing")
   ).map((el) => el.textContent.trim());
-  const overallScore = document
-    .getElementById("overall-score")
-    .getAttribute("data-score");
 
   // Generate the cover letter
   const today = new Date().toLocaleDateString();
@@ -42,6 +47,7 @@ Based on my analysis, I have ${
     matchingSkills.length
   } of the key skills required for this position, including ${matchingSkills
     .slice(0, 5)
+    .map(capitalizeFirstLetter)
     .join(", ")}${matchingSkills.length > 5 ? ", and others" : ""}.
 
 ${
@@ -50,6 +56,7 @@ ${
         ", "
       )}, my strong foundation in ${matchingSkills
         .slice(0, 3)
+        .map(capitalizeFirstLetter)
         .join(
           ", "
         )} provides me with the capability to quickly learn and apply these skills.`
@@ -66,7 +73,43 @@ Sincerely,
 
 [Your Name]`;
 
-  coverLetterText.value = coverLetter;
+  // Initialize Quill if it hasn't been initialized yet
+  if (!window.quillEditor) {
+    // Create a div for the editor
+    coverLetterEditorContainer.innerHTML = '<div id="quill-editor"></div>';
+
+    // Initialize Quill
+    window.quillEditor = new Quill("#quill-editor", {
+      theme: "snow",
+      modules: {
+        toolbar: [
+          ["bold", "italic", "underline", "strike"],
+          ["blockquote", "code-block"],
+          [{ header: 1 }, { header: 2 }],
+          [{ list: "ordered" }, { list: "bullet" }],
+          [{ script: "sub" }, { script: "super" }],
+          [{ indent: "-1" }, { indent: "+1" }],
+          [{ direction: "rtl" }],
+          [{ size: ["small", false, "large", "huge"] }],
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
+          [{ color: [] }, { background: [] }],
+          [{ font: [] }],
+          [{ align: [] }],
+          ["clean"],
+        ],
+      },
+    });
+
+    // Set content
+    window.quillEditor.clipboard.dangerouslyPasteHTML(
+      coverLetter.replace(/\n/g, "<br>")
+    );
+  } else {
+    // Update content if editor already exists
+    window.quillEditor.clipboard.dangerouslyPasteHTML(
+      coverLetter.replace(/\n/g, "<br>")
+    );
+  }
 }
 
 export function initDocumentDownloadButtons() {
@@ -90,25 +133,49 @@ export function initDocumentDownloadButtons() {
   const copyBtn = document.getElementById("copy-cover-letter");
   if (copyBtn) {
     copyBtn.addEventListener("click", function () {
-      const coverLetterText = document.getElementById("cover-letter-text");
-      if (coverLetterText) {
-        coverLetterText.select();
-        document.execCommand("copy");
+      // Get content from Quill if it's initialized
+      if (window.quillEditor) {
+        const content = window.quillEditor.root.innerHTML;
 
-        // Show feedback
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => {
-          copyBtn.textContent = originalText;
-        }, 2000);
+        // Create a temporary textarea to copy HTML content
+        const tempTextarea = document.createElement("textarea");
+        tempTextarea.value = content;
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempTextarea);
+      } else {
+        // Fallback to regular textarea
+        const coverLetterText = document.getElementById("cover-letter-text");
+        if (coverLetterText) {
+          coverLetterText.select();
+          document.execCommand("copy");
+        }
       }
+
+      // Show feedback
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+      }, 2000);
     });
   }
 }
 
 function submitDocumentForm(docType) {
-  const coverLetterText = document.getElementById("cover-letter-text")?.value;
-  if (!coverLetterText) return;
+  // Get content from Quill if it's initialized
+  let coverLetterContent = "";
+
+  if (window.quillEditor) {
+    coverLetterContent = window.quillEditor.root.innerHTML;
+  } else {
+    // Fallback to regular textarea
+    coverLetterContent =
+      document.getElementById("cover-letter-text")?.value || "";
+  }
+
+  if (!coverLetterContent) return;
 
   // Create a form to submit the text to the server
   const form = document.createElement("form");
@@ -120,7 +187,7 @@ function submitDocumentForm(docType) {
   const textInput = document.createElement("input");
   textInput.type = "hidden";
   textInput.name = "text";
-  textInput.value = coverLetterText;
+  textInput.value = coverLetterContent;
   form.appendChild(textInput);
 
   // Add document type input
@@ -129,6 +196,13 @@ function submitDocumentForm(docType) {
   typeInput.name = "type";
   typeInput.value = docType;
   form.appendChild(typeInput);
+
+  // Add a flag to indicate this is HTML content
+  const formatInput = document.createElement("input");
+  formatInput.type = "hidden";
+  formatInput.name = "format";
+  formatInput.value = "html";
+  form.appendChild(formatInput);
 
   // Submit the form
   document.body.appendChild(form);
