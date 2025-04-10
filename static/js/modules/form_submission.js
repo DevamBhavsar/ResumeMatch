@@ -1,3 +1,5 @@
+import { ProgressTracker } from "./progress_tracker.js";
+
 export function initBatchFormSubmission() {
   const form = document.getElementById("batch_matching_form");
   if (!form) {
@@ -24,7 +26,7 @@ export function initBatchFormSubmission() {
 
   form.setAttribute("data-submit-listener", "true");
 
-  submitButton.addEventListener("click", function (e) {
+  submitButton.addEventListener("click", async function (e) {
     e.preventDefault(); // Prevent default button behavior
 
     // Validate form
@@ -67,8 +69,8 @@ export function initBatchFormSubmission() {
     }
 
     // Show loading indicator
-    const loadingIndicator = document.getElementById("loading-indicator");
     if (loadingIndicator) {
+      console.log("Starting file upload process");
       loadingIndicator.style.display = "flex";
       // Position the loading indicator in the viewport
       const windowHeight = window.innerHeight;
@@ -87,9 +89,70 @@ export function initBatchFormSubmission() {
       }
     }
 
-    // Submit the form after a short delay to allow the animation to start
-    setTimeout(() => {
-      form.submit();
-    }, 500);
+    // Submit form data
+    const formData = new FormData(form);
+    try {
+      console.log("Submitting files to server...");
+      const response = await fetch("/batch-upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.job_id) {
+        console.log(`Job started with ID: ${data.job_id}`);
+        const tracker = new ProgressTracker(data.job_id);
+
+        // Show initial loading state
+        if (window.updateLoadingProgress) {
+          window.updateLoadingProgress({
+            status: "processing",
+            progress: 0,
+            stage: "starting",
+            message: "Initializing...",
+          });
+        }
+
+        tracker.startTracking((progressData) => {
+          console.log("Progress update:", progressData);
+
+          if (window.updateLoadingProgress) {
+            window.updateLoadingProgress(progressData);
+          }
+
+          if (progressData.status === "completed") {
+            console.log("Processing completed, redirecting...");
+            if (progressData.redirect_url) {
+              window.location.href = progressData.redirect_url;
+            } else {
+              console.error("No redirect URL provided");
+              alert("Processing completed but redirect URL is missing");
+              loadingIndicator.style.display = "none";
+            }
+          } else if (progressData.status === "error") {
+            console.error("Processing error:", progressData.message);
+            alert(
+              "Error processing files: " +
+                (progressData.message || "Unknown error")
+            );
+            loadingIndicator.style.display = "none";
+            tracker.stopTracking();
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      alert("Error submitting form: " + error.message);
+      loadingIndicator.style.display = "none";
+    }
   });
 }

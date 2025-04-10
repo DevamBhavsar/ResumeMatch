@@ -1,7 +1,8 @@
 import logging
 import os
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
-
+from flask import Flask, jsonify,session,render_template, request, jsonify, send_from_directory, send_file, Response
+import json
+import time
 from config import Config
 from utils.file_handler import FileHandler
 from utils.error_handler import ErrorHandler
@@ -11,6 +12,11 @@ from utils.matcher import ResumeMatcher
 from utils.document_generator import DocumentGenerator
 from services.matching_service import MatchingService
 from services.batch_matching_service import BatchMatchingService
+import uuid
+import threading
+import time
+from queue import Queue
+from threading import Thread, Lock
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +25,10 @@ logging.basicConfig(
     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
+processing_status = {}
+job_progress = {}
+job_results = {}
+job_results_lock = Lock()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -38,7 +48,11 @@ try:
 except Exception as e:
     logger.error(f"Error initializing components: {e}")
     raise
-
+@app.route('/check-progress/<job_id>', methods=['GET'])
+def check_progress(job_id):
+    if job_id in processing_status:
+        return jsonify(processing_status[job_id])
+    return jsonify({"status": "not_found"}), 404
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -98,69 +112,149 @@ def upload_file():
     except Exception as e:
         return ErrorHandler.handle_file_upload_error(e, filepath, temp_dir, file_handler)
 
+@app.route('/progress/<job_id>')
+def progress(job_id):
+    def generate():
+        try:
+            while True:
+                if job_id in job_progress:
+                    progress_data = job_progress[job_id]
+                    logger.debug(f"Sending progress update for {job_id}: {progress_data}")
+                    yield f"data: {json.dumps(progress_data)}\n\n"
+                    
+                    if progress_data['status'] in ['completed', 'error']:
+                        break
+                
+                time.sleep(0.5)
+        except GeneratorExit:
+            logger.info(f"Client closed connection for job {job_id}")
+        except Exception as e:
+            logger.error(f"Error in progress stream for job {job_id}: {str(e)}")
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
+    
+    response = Response(generate(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Connection'] = 'keep-alive'
+    response.headers['X-Accel-Buffering'] = 'no'
+    return response
+
 @app.route("/batch-upload", methods=["POST"])
 def batch_upload_files():
-    temp_dirs = []
-    filepaths = []
-
     try:
-        if "resumes" not in request.files:
-            logger.warning("No resume files in request")
-            return jsonify({"error": "No resume files uploaded"}), 400
-
-        files = request.files.getlist("resumes")
-        job_description = request.form.get("job_description", "")
-
-        if not files or len(files) == 0 or files[0].filename == "":
-            logger.warning("No files selected")
-            return jsonify({"error": "No files selected"}), 400
-
-        if len(files) > Config.MAX_RESUMES:
-            logger.warning(f"Too many files: {len(files)}")
-            return jsonify({"error": f"Maximum {Config.MAX_RESUMES} files allowed"}), 400
-
-        if job_description == "":
-            logger.warning("Empty job description submitted")
-            return jsonify({"error": "No job description provided"}), 400
-
-        # Process each file
-        for file in files:
-            # Check allowed file extensions
-            if not file_handler.allowed_file(file.filename):
-                logger.warning(f"Unsupported file type: {file.filename}")
-                continue
-
-            # Create secure temporary file
-            filepath, temp_dir = file_handler.secure_temp_file(file)
-            filepaths.append(filepath)
-            temp_dirs.append(temp_dir)
-
-            # Save the file
-            file.save(filepath)
-            
-            # Validate file content
-            file_ext = file.filename.rsplit(".", 1)[1].lower()
-            if not file_handler.validate_file_content(filepath, file_ext):
-                logger.warning(f"Invalid file content: {file.filename}")
-                continue
-
-        if not filepaths:
-            return jsonify({"error": "No valid files uploaded"}), 400
-
-        # Process the batch match
-        results = batch_matching_service.process_batch_match(filepaths, job_description)
-
-        # Clean up temporary files
-        for filepath, temp_dir in zip(filepaths, temp_dirs):
-            file_handler.cleanup_temp_files(filepath, temp_dir)
-
-        return render_template("batch_results.html", results=results, job_description=job_description)
+        job_id = str(uuid.uuid4())
+        temp_dirs = []
+        filepaths = []
+        
+        logger.info(f"Starting batch upload for job_id: {job_id}")
+        
+        # Save files first before starting background process
+        for file in request.files.getlist('resumes'):
+            try:
+                logger.info(f"Processing file: {file.filename}")
+                filepath, temp_dir = file_handler.secure_temp_file(file)
+                filepaths.append(filepath)
+                temp_dirs.append(temp_dir)
+                file.save(filepath)
+                logger.info(f"File saved successfully: {filepath}")
+            except Exception as e:
+                logger.error(f"Error saving file {file.filename}: {str(e)}")
+                # Cleanup any files that were saved
+                for fp, td in zip(filepaths, temp_dirs):
+                    file_handler.cleanup_temp_files(fp, td)
+                raise
+        
+        # Initialize progress tracking
+        job_progress[job_id] = {
+            "status": "processing",
+            "progress": 0,
+            "stage": "extracting",
+            "message": "Starting batch processing..."
+        }
+        
+        # Pass saved filepaths to background thread
+        thread = Thread(
+            target=process_files_with_progress,
+            args=(job_id, filepaths, temp_dirs, request.form)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({"job_id": job_id})
 
     except Exception as e:
-        # Clean up on error
+        logger.error(f"Error in batch upload: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+def process_files_with_progress(job_id, filepaths, temp_dirs, form_data):
+    try:
+        logger.info(f"Starting batch processing for job_id: {job_id}")
+
+        def update_progress(progress, stage, message):
+            logger.info(f"Job {job_id}: {stage} - {progress}% - {message}")
+            job_progress[job_id] = {
+                "status": "processing",
+                "progress": progress,
+                "stage": stage,
+                "message": message
+            }
+
+        # File processing steps
+        update_progress(10, "extracting", "Extracting text from resumes...")
+        logger.info(f"Processing {len(filepaths)} files")
+        
+        # Process files using saved filepaths
+        update_progress(40, "analyzing", "Analyzing skills and keywords...")
+        logger.info("Starting skill analysis")
+        
+        update_progress(70, "calculating", "Calculating match scores...")
+        logger.info("Starting score calculation")
+        
+        update_progress(90, "ranking", "Ranking candidates...")
+        logger.info("Starting candidate ranking")
+        
+        results = batch_matching_service.process_batch_match(filepaths,form_data['job_description'])
+        
+        logger.info(f"Processed {len(results)} candidates successfully")
+        
+        # Store results in global dictionary instead of session
+        with job_results_lock:
+            job_results[job_id] = results
+        
+        # Clean up files
         for filepath, temp_dir in zip(filepaths, temp_dirs):
             file_handler.cleanup_temp_files(filepath, temp_dir)
-        return ErrorHandler.handle_file_upload_error(e)
+        
+        logger.info(f"Job {job_id} completed successfully")
+        job_progress[job_id] = {
+            "status": "completed",
+            "progress": 100,
+            "redirect_url": f"/batch-results/{job_id}"
+        }
+
+    except Exception as e:
+        logger.error(f"Error processing files for job {job_id}: {str(e)}", exc_info=True)
+        job_progress[job_id] = {
+            "status": "error",
+            "message": str(e)
+        }
+        # Cleanup on error
+        for filepath, temp_dir in zip(filepaths, temp_dirs):
+            file_handler.cleanup_temp_files(filepath, temp_dir)
+
+# Update the batch results endpoint
+@app.route("/batch-results/<job_id>")
+def batch_results(job_id):
+    # Try to get results from our global dictionary
+    results = job_results.get(job_id)
+    if not results:
+        logger.warning(f"No results found for job_id: {job_id}")
+        return redirect("/batch")
+    
+    # Cleanup after retrieving results
+    with job_results_lock:
+        job_results.pop(job_id, None)
+        
+    return render_template("batch_results.html", results=results)
 
 @app.route('/js/lib/<path:filename>')
 def serve_js_lib(filename):

@@ -62,6 +62,37 @@ export function initLoadingAnimation() {
     }, interval);
   };
 
+  window.updateLoadingProgress = function (progressData) {
+    console.log(
+      `Updating progress: ${progressData.progress}% - ${progressData.message}`
+    );
+
+    // Update progress bar
+    progressBar.style.width = `${progressData.progress}%`;
+    loadingStatus.textContent = progressData.message;
+
+    // Update steps based on current stage
+    const stages = {
+      extracting: 0,
+      analyzing: 1,
+      calculating: 2,
+      ranking: 3,
+    };
+
+    const currentStageIndex = stages[progressData.stage];
+    console.log(`Current stage: ${progressData.stage} (${currentStageIndex})`);
+
+    // Complete all previous steps
+    for (let i = 0; i < currentStageIndex; i++) {
+      console.log(`Completing step ${i}`);
+      completeStep(i);
+    }
+
+    // Activate current step
+    console.log(`Activating step ${currentStageIndex}`);
+    activateStep(currentStageIndex);
+  };
+
   function activateStep(index) {
     const step = loadingSteps[index];
     if (!step) return;
