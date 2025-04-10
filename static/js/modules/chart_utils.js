@@ -1,6 +1,11 @@
 export function visualizeSkillGaps() {
   const ctx = document.getElementById("skillGapChart").getContext("2d");
 
+  // Get theme colors
+  const textColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--text-color")
+    .trim();
+
   // Get data from the page
   const matchingSkills = Array.from(
     document.querySelectorAll(".skill-tag.match")
@@ -50,12 +55,19 @@ export function visualizeSkillGaps() {
         legend: {
           position: "bottom",
           labels: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor,
             font: {
               size: 14,
             },
+          },
+        },
+        title: {
+          display: true,
+          text: "Skill Gap Analysis",
+          color: textColor,
+          font: {
+            size: 16,
+            weight: "bold",
           },
         },
         tooltip: {
@@ -71,6 +83,8 @@ export function visualizeSkillGaps() {
               return `${label}: ${value} (${percentage}%)`;
             },
           },
+          titleColor: textColor,
+          bodyColor: textColor,
         },
       },
       cutout: "60%",
@@ -128,6 +142,11 @@ export function createSkillRadarChart() {
     window.skillRadarChart.destroy();
   }
 
+  // Get theme colors
+  const textColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--text-color")
+    .trim();
+
   // Create radar chart with improved configuration
   window.skillRadarChart = new Chart(ctx, {
     type: "radar",
@@ -180,9 +199,7 @@ export function createSkillRadarChart() {
               .trim(),
           },
           pointLabels: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor,
             font: {
               size: 12,
             },
@@ -193,9 +210,7 @@ export function createSkillRadarChart() {
           ticks: {
             display: false, // Hide the numeric labels
             backdropColor: "transparent",
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor,
             showLabelBackdrop: false,
             stepSize: 20,
           },
@@ -205,14 +220,21 @@ export function createSkillRadarChart() {
         legend: {
           position: "bottom",
           labels: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor,
             font: {
               size: 14,
             },
             boxWidth: 15,
             padding: 15,
+          },
+        },
+        title: {
+          display: true,
+          text: "Skill Radar Analysis",
+          color: textColor,
+          font: {
+            size: 16,
+            weight: "bold",
           },
         },
         tooltip: {
@@ -222,9 +244,7 @@ export function createSkillRadarChart() {
           titleColor: getComputedStyle(document.documentElement)
             .getPropertyValue("--heading-color")
             .trim(),
-          bodyColor: getComputedStyle(document.documentElement)
-            .getPropertyValue("--text-color")
-            .trim(),
+          bodyColor: textColor,
           borderColor: getComputedStyle(document.documentElement)
             .getPropertyValue("--border-color")
             .trim(),

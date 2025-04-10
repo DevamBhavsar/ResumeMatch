@@ -53,8 +53,10 @@ function createRankingChart() {
 
   // Get theme-specific colors - this is the key part
   const textColor = document.body.classList.contains("dark-mode")
-    ? "#ffffff" // Explicitly use white text in dark mode
-    : "#333333"; // Dark text in light mode
+    ? getComputedStyle(document.documentElement)
+        .getPropertyValue("--text-color")
+        .trim()
+    : "#333333";
 
   const gridColor = document.body.classList.contains("dark-mode")
     ? "rgba(255, 255, 255, 0.1)"
@@ -99,6 +101,15 @@ function createRankingChart() {
             color: textColor, // Set text color for legend
           },
         },
+        title: {
+          display: true,
+          text: "Candidate Ranking",
+          color: textColor,
+          font: {
+            size: 16,
+            weight: "bold",
+          },
+        },
         tooltip: {
           callbacks: {
             label: function (context) {
@@ -121,6 +132,11 @@ function createRankingChart() {
           },
           ticks: {
             color: textColor, // Use our explicit text color
+          },
+          title: {
+            display: true,
+            text: "Match Score (%)",
+            color: textColor,
           },
           border: {
             color: gridColor,

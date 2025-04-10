@@ -17,6 +17,10 @@ import threading
 import time
 from queue import Queue
 from threading import Thread, Lock
+from flask_sock import Sock
+import queue
+import asyncio
+# Remove werkzeug.exceptions import and use built-in ConnectionError
 
 # Configure logging
 logging.basicConfig(
@@ -48,6 +52,52 @@ try:
 except Exception as e:
     logger.error(f"Error initializing components: {e}")
     raise
+
+sock = Sock(app)
+progress_queues = {}
+
+@sock.route('/ws/progress/<job_id>')
+def ws_progress(ws, job_id):
+    try:
+        q = queue.Queue()
+        progress_queues[job_id] = q
+        
+        # Send initial connection confirmation
+        ws.send(json.dumps({"status": "connected", "job_id": job_id}))
+        
+        while True:
+            try:
+                progress_data = q.get(timeout=30)
+                
+                # Check if connection is still alive
+                try:
+                    ws.send(json.dumps(progress_data))
+                except ConnectionError:
+                    logger.warning(f"WebSocket connection lost for job {job_id}")
+                    break
+                    
+                if progress_data['status'] in ['completed', 'error']:
+                    break
+                    
+            except queue.Empty:
+                try:
+                    # Send heartbeat with timestamp
+                    ws.send(json.dumps({
+                        "type": "heartbeat",
+                        "timestamp": time.time()
+                    }))
+                except ConnectionError:
+                    logger.warning(f"WebSocket heartbeat failed for job {job_id}")
+                    break
+                
+    except Exception as e:
+        logger.error(f"WebSocket error for job {job_id}: {str(e)}")
+    finally:
+        # Cleanup
+        if job_id in progress_queues:
+            progress_queues.pop(job_id, None)
+        logger.info(f"WebSocket connection closed for job {job_id}")
+
 @app.route('/check-progress/<job_id>', methods=['GET'])
 def check_progress(job_id):
     if job_id in processing_status:
@@ -116,26 +166,36 @@ def upload_file():
 def progress(job_id):
     def generate():
         try:
+            last_progress = 0
+            last_update = time.time()
+            
             while True:
                 if job_id in job_progress:
                     progress_data = job_progress[job_id]
-                    logger.debug(f"Sending progress update for {job_id}: {progress_data}")
-                    yield f"data: {json.dumps(progress_data)}\n\n"
+                    current_progress = progress_data.get('progress', 0)
+                    
+                    # Only send update if progress changed significantly or enough time passed
+                    if (current_progress - last_progress >= 5 or 
+                        time.time() - last_update >= 0.5):
+                        
+                        yield f"data: {json.dumps(progress_data)}\n\n"
+                        last_progress = current_progress
+                        last_update = time.time()
                     
                     if progress_data['status'] in ['completed', 'error']:
                         break
                 
-                time.sleep(0.5)
+                time.sleep(0.1)
+                
         except GeneratorExit:
             logger.info(f"Client closed connection for job {job_id}")
-        except Exception as e:
-            logger.error(f"Error in progress stream for job {job_id}: {str(e)}")
-            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
     response = Response(generate(), mimetype='text/event-stream')
-    response.headers['Cache-Control'] = 'no-cache'
-    response.headers['Connection'] = 'keep-alive'
-    response.headers['X-Accel-Buffering'] = 'no'
+    response.headers.update({
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    })
     return response
 
 @app.route("/batch-upload", methods=["POST"])
@@ -190,13 +250,19 @@ def process_files_with_progress(job_id, filepaths, temp_dirs, form_data):
         logger.info(f"Starting batch processing for job_id: {job_id}")
 
         def update_progress(progress, stage, message):
-            logger.info(f"Job {job_id}: {stage} - {progress}% - {message}")
-            job_progress[job_id] = {
+            progress_data = {
                 "status": "processing",
                 "progress": progress,
                 "stage": stage,
                 "message": message
             }
+            
+            # Update progress in shared dict
+            job_progress[job_id] = progress_data
+            
+            # Send to WebSocket if available
+            if job_id in progress_queues:
+                progress_queues[job_id].put(progress_data)
 
         # File processing steps
         update_progress(10, "extracting", "Extracting text from resumes...")
@@ -232,12 +298,15 @@ def process_files_with_progress(job_id, filepaths, temp_dirs, form_data):
         }
 
     except Exception as e:
-        logger.error(f"Error processing files for job {job_id}: {str(e)}", exc_info=True)
-        job_progress[job_id] = {
+        error_data = {
             "status": "error",
             "message": str(e)
         }
-        # Cleanup on error
+        job_progress[job_id] = error_data
+        if job_id in progress_queues:
+            progress_queues[job_id].put(error_data)
+        
+        # Cleanup
         for filepath, temp_dir in zip(filepaths, temp_dirs):
             file_handler.cleanup_temp_files(filepath, temp_dir)
 
