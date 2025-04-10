@@ -85,8 +85,48 @@ export function initResultsPage() {
 
   // Add tooltips to skills
   addSkillTooltips();
-}
+  // Initialize Quill if the cover letter is already visible
+  const coverLetterContainer = document.getElementById(
+    "cover-letter-container"
+  );
+  if (coverLetterContainer && coverLetterContainer.style.display !== "none") {
+    const quillEditorContainer = document.getElementById("quill-editor");
+    const coverLetterText = document.getElementById("cover-letter-text");
 
+    if (quillEditorContainer && !window.quillEditor) {
+      try {
+        window.quillEditor = new Quill("#quill-editor", {
+          modules: {
+            toolbar: [
+              ["bold", "italic", "underline", "strike"],
+              [{ list: "ordered" }, { list: "bullet" }],
+              [{ header: [1, 2, 3, 4, 5, 6, false] }],
+              [{ color: [] }, { background: [] }],
+              ["clean"],
+            ],
+          },
+          theme: "snow",
+        });
+
+        // If there's content in the textarea, transfer it to Quill
+        if (coverLetterText && coverLetterText.value) {
+          const htmlContent = coverLetterText.value
+            .split("\n\n")
+            .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+            .join("");
+
+          window.quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
+        }
+      } catch (error) {
+        console.error("Error initializing Quill editor:", error);
+        // Show the textarea as fallback if Quill fails
+        if (coverLetterText) {
+          coverLetterText.style.display = "block";
+        }
+      }
+    }
+  }
+}
 // Function to animate counter
 function animateCounter(element, start, end, duration) {
   let startTimestamp = null;

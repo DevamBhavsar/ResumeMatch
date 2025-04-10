@@ -2,17 +2,17 @@ export function generateCoverLetter() {
   const coverLetterContainer = document.getElementById(
     "cover-letter-container"
   );
+  const coverLetterText = document.getElementById("cover-letter-text");
+  const quillEditorContainer = document.getElementById("quill-editor");
+
   const capitalizeFirstLetter = (str) => {
     if (!str) {
       return "";
     }
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
-  const coverLetterEditorContainer = document.getElementById(
-    "cover-letter-editor-container"
-  );
 
-  if (!coverLetterContainer || !coverLetterEditorContainer) return;
+  if (!coverLetterContainer) return;
 
   // Show the container
   coverLetterContainer.style.display = "block";
@@ -73,42 +73,48 @@ Sincerely,
 
 [Your Name]`;
 
-  // Initialize Quill if it hasn't been initialized yet
-  if (!window.quillEditor) {
-    // Create a div for the editor
-    coverLetterEditorContainer.innerHTML = '<div id="quill-editor"></div>';
+  // Set the text in the textarea for backward compatibility
+  if (coverLetterText) {
+    coverLetterText.value = coverLetter;
+  }
+  try {
+    // Initialize Quill if it doesn't exist yet
+    if (!window.quillEditor && quillEditorContainer) {
+      // Initialize Quill with toolbar options
+      window.quillEditor = new Quill("#quill-editor", {
+        modules: {
+          toolbar: [
+            ["bold", "italic", "underline", "strike"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            [{ header: [1, 2, 3, 4, 5, 6, false] }],
+            [{ color: [] }, { background: [] }],
+            ["clean"],
+          ],
+        },
+        theme: "snow",
+      });
 
-    // Initialize Quill
-    window.quillEditor = new Quill("#quill-editor", {
-      theme: "snow",
-      modules: {
-        toolbar: [
-          ["bold", "italic", "underline", "strike"],
-          ["blockquote", "code-block"],
-          [{ header: 1 }, { header: 2 }],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ script: "sub" }, { script: "super" }],
-          [{ indent: "-1" }, { indent: "+1" }],
-          [{ direction: "rtl" }],
-          [{ size: ["small", false, "large", "huge"] }],
-          [{ header: [1, 2, 3, 4, 5, 6, false] }],
-          [{ color: [] }, { background: [] }],
-          [{ font: [] }],
-          [{ align: [] }],
-          ["clean"],
-        ],
-      },
-    });
+      // Set the content in Quill
+      // Convert plain text to HTML with paragraphs
+      const htmlContent = coverLetter
+        .split("\n\n")
+        .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+        .join("");
 
-    // Set content
-    window.quillEditor.clipboard.dangerouslyPasteHTML(
-      coverLetter.replace(/\n/g, "<br>")
-    );
-  } else {
-    // Update content if editor already exists
-    window.quillEditor.clipboard.dangerouslyPasteHTML(
-      coverLetter.replace(/\n/g, "<br>")
-    );
+      window.quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
+    } else if (window.quillEditor) {
+      const htmlContent = coverLetter
+        .split("\n\n")
+        .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      window.quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
+    }
+  } catch (error) {
+    console.error("Error initializing Quill editor:", error);
+    // Show the textarea as fallback if Quill fails
+    if (coverLetterText) {
+      coverLetterText.style.display = "block";
+    }
   }
 }
 

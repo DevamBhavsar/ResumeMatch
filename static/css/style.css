@@ -538,3 +538,90 @@ a.btn {
     max-width: 500px;
   }
 }
+
+/* Quill editor styling */
+.quill-editor {
+  background-color: white;
+  color: #333;
+  min-height: 300px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+/* Make sure the toolbar has proper styling */
+.ql-toolbar.ql-snow {
+  border-radius: 4px 4px 0 0;
+  background-color: #f5f5f5;
+  border-color: var(--border-color);
+}
+
+.ql-container.ql-snow {
+  border-radius: 0 0 4px 4px;
+  border-color: var(--border-color);
+}
+
+/* Enhanced Quill dark mode styling */
+[data-theme="dark"] .ql-toolbar.ql-snow {
+  background-color: #2a2a2a;
+  border-color: #444;
+}
+
+[data-theme="dark"] .ql-container.ql-snow {
+  background-color: #333;
+  color: #eee;
+  border-color: #444;
+}
+
+[data-theme="dark"] .ql-editor p {
+  color: #eee;
+}
+
+[data-theme="dark"] .ql-snow .ql-stroke {
+  stroke: #ccc;
+}
+
+[data-theme="dark"] .ql-snow .ql-fill, 
+[data-theme="dark"] .ql-snow .ql-stroke.ql-fill {
+  fill: #ccc;
+}
+
+[data-theme="dark"] .ql-picker-label {
+  color: #ccc;
+}
+
+[data-theme="dark"] .ql-picker-options {
+  background-color: #333;
+}
+
+[data-theme="dark"] .ql-picker-item {
+  color: #ccc;
+}
+
+[data-theme="dark"] .ql-snow.ql-toolbar button:hover,
+[data-theme="dark"] .ql-snow .ql-toolbar button:hover,
+[data-theme="dark"] .ql-snow.ql-toolbar button.ql-active,
+[data-theme="dark"] .ql-snow .ql-toolbar button.ql-active,
+[data-theme="dark"] .ql-snow.ql-toolbar .ql-picker-label:hover,
+[data-theme="dark"] .ql-snow .ql-toolbar .ql-picker-label:hover,
+[data-theme="dark"] .ql-snow.ql-toolbar .ql-picker-label.ql-active,
+[data-theme="dark"] .ql-snow .ql-toolbar .ql-picker-label.ql-active,
+[data-theme="dark"] .ql-snow.ql-toolbar .ql-picker-item:hover,
+[data-theme="dark"] .ql-snow .ql-toolbar .ql-picker-item:hover,
+[data-theme="dark"] .ql-snow.ql-toolbar .ql-picker-item.ql-selected,
+[data-theme="dark"] .ql-snow .ql-toolbar .ql-picker-item.ql-selected {
+  color: #fff;
+}
+
+[data-theme="dark"] .ql-snow.ql-toolbar button:hover .ql-stroke,
+[data-theme="dark"] .ql-snow .ql-toolbar button:hover .ql-stroke,
+[data-theme="dark"] .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+[data-theme="dark"] .ql-snow .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #fff;
+}
+
+[data-theme="dark"] .ql-snow.ql-toolbar button:hover .ql-fill,
+[data-theme="dark"] .ql-snow .ql-toolbar button:hover .ql-fill,
+[data-theme="dark"] .ql-snow.ql-toolbar button.ql-active .ql-fill,
+[data-theme="dark"] .ql-snow .ql-toolbar button.ql-active .ql-fill {
+  fill: #fff;
+}
