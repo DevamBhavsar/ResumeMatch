@@ -71,10 +71,14 @@ export function initDropzone() {
 
     return invalidFiles;
   }
-
   function handleDrop(e) {
     const dt = e.dataTransfer;
     const files = dt.files;
+
+    if (!files || files.length === 0) {
+      console.log("No files dropped");
+      return;
+    }
 
     // Validate files
     const invalidFiles = validateFiles(files);
@@ -90,32 +94,33 @@ export function initDropzone() {
         return !invalidFiles.some((invalid) => invalid.name === file.name);
       });
 
-      addFilesToInput(validFiles);
+      if (validFiles.length > 0) {
+        addFilesToInput(validFiles);
+      }
     } else {
       // Use the new function instead of directly setting files
       addFilesToInput(files);
     }
   }
 
-  // Handle files selected through the file input
-  fileInput.addEventListener("change", function () {
-    // Get the new files
-    const newFiles = Array.from(this.files);
+  function addFilesToInput(newFiles) {
+    const fileInput = document.getElementById("resumes");
+
+    // Initialize storedFiles if it doesn't exist
+    if (!window.storedFiles) {
+      window.storedFiles = [];
+    }
 
     // Create a DataTransfer object to manipulate the files
     const dataTransfer = new DataTransfer();
 
-    // First add existing files from our stored collection
-    if (window.storedFiles) {
-      window.storedFiles.forEach((file) => {
-        dataTransfer.items.add(file);
-      });
-    } else {
-      window.storedFiles = [];
-    }
+    // First add existing files from storedFiles
+    window.storedFiles.forEach((file) => {
+      dataTransfer.items.add(file);
+    });
 
     // Then add new files
-    newFiles.forEach((file) => {
+    Array.from(newFiles).forEach((file) => {
       // Check if file already exists in the selection
       const fileExists = window.storedFiles.some(
         (existingFile) =>
@@ -134,42 +139,17 @@ export function initDropzone() {
 
     // Update the preview
     updateFilesPreview(fileInput.files);
+  }
+
+  // Handle files selected through the file input
+  fileInput.addEventListener("change", function () {
+    // Get the new files
+    const newFiles = Array.from(this.files);
+
+    // Use the updated addFilesToInput function
+    addFilesToInput(newFiles);
 
     // Clear the value to allow selecting the same files again
     this.value = "";
   });
-
-  function addFilesToInput(newFiles) {
-    const fileInput = document.getElementById("resumes");
-
-    // Create a DataTransfer object to manipulate the files
-    const dataTransfer = new DataTransfer();
-
-    // First add existing files
-    if (fileInput.files) {
-      Array.from(fileInput.files).forEach((file) => {
-        dataTransfer.items.add(file);
-      });
-    }
-
-    // Then add new files
-    Array.from(newFiles).forEach((file) => {
-      // Check if file already exists in the selection
-      const fileExists = Array.from(dataTransfer.files).some(
-        (existingFile) =>
-          existingFile.name === file.name && existingFile.size === file.size
-      );
-
-      // Only add if it doesn't exist already
-      if (!fileExists) {
-        dataTransfer.items.add(file);
-      }
-    });
-
-    // Update the file input with the combined files
-    fileInput.files = dataTransfer.files;
-
-    // Update the preview
-    updateFilesPreview(fileInput.files);
-  }
 }

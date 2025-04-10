@@ -2,18 +2,25 @@ export function initThemeToggle() {
   const themeToggle = document.getElementById("theme-toggle");
   const body = document.body;
 
+  // First, apply the stored theme regardless of toggle button presence
+  const storedDarkMode = localStorage.getItem("dark-mode");
+  if (storedDarkMode === "true") {
+    body.classList.add("dark-mode");
+    body.setAttribute("data-theme", "dark");
+  } else {
+    body.classList.remove("dark-mode");
+    body.setAttribute("data-theme", "light");
+  }
+
+  // If there's no toggle button, we're done
   if (!themeToggle) {
-    const storedDarkMode = localStorage.getItem("dark-mode");
-    if (storedDarkMode === "true") {
-      body.classList.add("dark-mode");
-      body.setAttribute("data-theme", "dark");
-    } else {
-      body.classList.remove("dark-mode");
-      body.setAttribute("data-theme", "light");
-    }
     return;
   }
 
+  // Update the toggle button icon based on current theme
+  themeToggle.textContent = body.classList.contains("dark-mode") ? "🌙" : "☀️";
+
+  // Add click event listener to the toggle button
   themeToggle.addEventListener("click", function () {
     // Toggle dark-mode class
     body.classList.toggle("dark-mode");
@@ -61,16 +68,4 @@ export function initThemeToggle() {
       }
     }, 50);
   });
-
-  // Check local storage for saved theme
-  const storedDarkMode = localStorage.getItem("dark-mode");
-  if (storedDarkMode === "true") {
-    body.classList.add("dark-mode");
-    body.setAttribute("data-theme", "dark");
-    themeToggle.textContent = "🌙";
-  } else {
-    body.classList.remove("dark-mode");
-    body.setAttribute("data-theme", "light");
-    themeToggle.textContent = "☀️";
-  }
 }

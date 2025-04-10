@@ -181,8 +181,36 @@
         style="display: none"
       >
         <div class="loading-spinner"></div>
-        <p>Processing resumes... This may take a moment.</p>
-        <p class="small">Analyzing skills and calculating match scores...</p>
+        <h3 class="loading-title">Processing Resumes</h3>
+        <div class="progress-bar-container">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="loading-status" class="loading-status">Initializing...</p>
+        <div class="loading-steps">
+          <div class="loading-step" data-step="1">
+            <span class="step-number">1</span>
+            <span class="step-text">Extracting text from resumes</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="2">
+            <span class="step-number">2</span>
+            <span class="step-text">Analyzing skills and keywords</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="3">
+            <span class="step-number">3</span>
+            <span class="step-text">Calculating match scores</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="4">
+            <span class="step-number">4</span>
+            <span class="step-text">Ranking candidates</span>
+            <span class="step-status">⏳</span>
+          </div>
+        </div>
+        <p class="loading-tip">
+          This may take a moment depending on the number of resumes.
+        </p>
       </div>
     </div>
 

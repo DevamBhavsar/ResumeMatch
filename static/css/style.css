@@ -670,3 +670,32 @@ a.btn {
     transform: scale(1.02);
     box-shadow: 0 0 15px rgba(var(--primary-color-rgb), 0.3);
 }
+
+.file-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  color: var(--text-color); /* Ensure icon is visible in both themes */
+}
+
+.file-name {
+  color: var(--text-color); /* Ensure file name is visible */
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  color: var(--text-muted); /* Ensure meta information is visible */
+  font-size: 0.85rem;
+}
+
+.file-type-indicator {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+  color: var(--primary-color);
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}

@@ -8,12 +8,12 @@ import { initResultsPage } from "./modules/result_page.js";
 import { initThemeToggle } from "./modules/theme.js";
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Initialize theme toggle
+  initThemeToggle();
+
   // Make chart functions globally available for theme toggle
   window.visualizeSkillGaps = visualizeSkillGaps;
   window.createSkillRadarChart = createSkillRadarChart;
-
-  // Initialize theme toggle
-  initThemeToggle();
 
   // Initialize file preview functionality
   initFilePreview("resume", "resume-preview");

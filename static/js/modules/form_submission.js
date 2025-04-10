@@ -67,9 +67,29 @@ export function initBatchFormSubmission() {
     }
 
     // Show loading indicator
-    loadingIndicator.style.display = "flex";
+    const loadingIndicator = document.getElementById("loading-indicator");
+    if (loadingIndicator) {
+      loadingIndicator.style.display = "flex";
+      // Position the loading indicator in the viewport
+      const windowHeight = window.innerHeight;
+      const loadingHeight = loadingIndicator.offsetHeight || 400;
+      const scrollPosition =
+        window.scrollY + (windowHeight - loadingHeight) / 2;
 
-    // Submit the form
-    form.submit();
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: "smooth",
+      });
+
+      // Start the loading animation
+      if (window.startLoadingAnimation) {
+        window.startLoadingAnimation();
+      }
+    }
+
+    // Submit the form after a short delay to allow the animation to start
+    setTimeout(() => {
+      form.submit();
+    }, 500);
   });
 }
