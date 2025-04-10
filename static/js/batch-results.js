@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize charts
   createRankingChart();
+  window.createRankingChart = createRankingChart;
 
   // Initialize modal functionality
   initCandidateModal();
@@ -30,10 +31,7 @@ function createRankingChart() {
   // Prepare data for chart
   const labels = rankingData.map((item) => {
     // Use resume name or contact name if available
-    if (item.contact_info && item.contact_info.name) {
-      return item.contact_info.name;
-    }
-    return item.resume_name;
+    return item.contact_info?.name || item.resume_name;
   });
 
   const scores = rankingData.map((item) => item.overall_score);
@@ -53,8 +51,28 @@ function createRankingChart() {
       .trim();
   });
 
+  // Get theme-specific colors - this is the key part
+  const textColor = document.body.classList.contains("dark-mode")
+    ? "#ffffff" // Explicitly use white text in dark mode
+    : "#333333"; // Dark text in light mode
+
+  const gridColor = document.body.classList.contains("dark-mode")
+    ? "rgba(255, 255, 255, 0.1)"
+    : "rgba(0, 0, 0, 0.1)";
+
+  const tooltipBgColor = document.body.classList.contains("dark-mode")
+    ? getComputedStyle(document.documentElement)
+        .getPropertyValue("--tooltip-bg")
+        .trim() || "#333"
+    : "#fff";
+
+  // Destroy existing chart if it exists to prevent duplicates
+  if (window.rankingChart instanceof Chart) {
+    window.rankingChart.destroy();
+  }
+
   // Create horizontal bar chart
-  const chart = new Chart(ctx, {
+  window.rankingChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels: labels,
@@ -63,7 +81,9 @@ function createRankingChart() {
           label: "Match Score (%)",
           data: scores,
           backgroundColor: backgroundColors,
-          borderColor: "rgba(0, 0, 0, 0.1)",
+          borderColor: document.body.classList.contains("dark-mode")
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
           borderWidth: 1,
         },
       ],
@@ -75,6 +95,9 @@ function createRankingChart() {
       plugins: {
         legend: {
           display: false,
+          labels: {
+            color: textColor, // Set text color for legend
+          },
         },
         tooltip: {
           callbacks: {
@@ -82,6 +105,11 @@ function createRankingChart() {
               return `Match Score: ${context.raw}%`;
             },
           },
+          backgroundColor: tooltipBgColor, // Set tooltip background color
+          titleColor: textColor, // Set text color for tooltip title
+          bodyColor: textColor, // Set text color for tooltip body
+          borderColor: gridColor,
+          borderWidth: 1,
         },
       },
       scales: {
@@ -89,12 +117,13 @@ function createRankingChart() {
           beginAtZero: true,
           max: 100,
           grid: {
-            color: "rgba(0, 0, 0, 0.1)",
+            color: gridColor,
           },
           ticks: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor, // Use our explicit text color
+          },
+          border: {
+            color: gridColor,
           },
         },
         y: {
@@ -102,16 +131,16 @@ function createRankingChart() {
             display: false,
           },
           ticks: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor, // Use our explicit text color
+          },
+          border: {
+            color: gridColor,
           },
         },
       },
     },
   });
 }
-
 function initCandidateModal() {
   const modal = document.getElementById("candidate-modal");
   const closeBtn = document.querySelector(".close-modal");
@@ -236,6 +265,12 @@ function openCandidateModal(candidateData) {
 function createModalSkillGapChart(candidateData) {
   const ctx = document.getElementById("modalSkillGapChart").getContext("2d");
 
+  const textColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--text-color")
+    .trim();
+  const containerBg = getComputedStyle(document.documentElement)
+    .getPropertyValue("--container-bg")
+    .trim();
   // Destroy existing chart if it exists
   if (window.modalSkillChart instanceof Chart) {
     window.modalSkillChart.destroy();
@@ -264,14 +299,7 @@ function createModalSkillGapChart(candidateData) {
               .getPropertyValue("--danger-color")
               .trim(),
           ],
-          borderColor: [
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--container-bg")
-              .trim(),
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--container-bg")
-              .trim(),
-          ],
+          borderColor: [containerBg, containerBg],
           borderWidth: 2,
         },
       ],
@@ -283,15 +311,16 @@ function createModalSkillGapChart(candidateData) {
         legend: {
           position: "bottom",
           labels: {
-            color: getComputedStyle(document.documentElement)
-              .getPropertyValue("--text-color")
-              .trim(),
+            color: textColor,
             font: {
               size: 14,
             },
           },
         },
         tooltip: {
+          backgroundColor: containerBg,
+          titleColor: textColor,
+          bodyColor: textColor,
           callbacks: {
             label: function (context) {
               const label = context.label || "";

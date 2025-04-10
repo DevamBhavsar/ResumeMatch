@@ -28,13 +28,38 @@ export function initThemeToggle() {
     // Update the icon based on the theme
     themeToggle.textContent = isDarkMode ? "🌙" : "☀️";
 
-    // Update charts if they exist
-    if (window.visualizeSkillGaps) {
-      window.visualizeSkillGaps();
-    }
-    if (window.createSkillRadarChart) {
-      window.createSkillRadarChart();
-    }
+    // Add a small delay to ensure CSS variables are updated
+    setTimeout(() => {
+      // Update charts if they exist
+      if (window.visualizeSkillGaps) {
+        window.visualizeSkillGaps();
+      }
+      if (window.createSkillRadarChart) {
+        window.createSkillRadarChart();
+      }
+      if (window.createRankingChart) {
+        window.createRankingChart();
+      }
+      if (window.modalSkillChart) {
+        // If there's an open modal with a chart, update it too
+        const candidateId = document
+          .querySelector(".view-details-btn[data-candidate-id]")
+          ?.getAttribute("data-candidate-id");
+        if (candidateId) {
+          const dataElement = document.getElementById("ranking-data");
+          if (dataElement) {
+            try {
+              const candidatesData = JSON.parse(dataElement.textContent);
+              if (candidatesData[candidateId - 1]) {
+                createModalSkillGapChart(candidatesData[candidateId - 1]);
+              }
+            } catch (e) {
+              console.error("Error updating modal chart:", e);
+            }
+          }
+        }
+      }
+    }, 50);
   });
 
   // Check local storage for saved theme
