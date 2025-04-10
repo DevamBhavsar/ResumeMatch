@@ -1,33 +1,51 @@
 export function initThemeToggle() {
-  const themeToggle = document.createElement("button");
-  themeToggle.className = "theme-toggle";
-  themeToggle.innerHTML = "☀️";
-  themeToggle.setAttribute("aria-label", "Toggle light mode");
-  document.body.appendChild(themeToggle);
+  const themeToggle = document.getElementById("theme-toggle");
+  const body = document.body;
+
+  if (!themeToggle) {
+    const storedDarkMode = localStorage.getItem("dark-mode");
+    if (storedDarkMode === "true") {
+      body.classList.add("dark-mode");
+      body.setAttribute("data-theme", "dark");
+    } else {
+      body.classList.remove("dark-mode");
+      body.setAttribute("data-theme", "light");
+    }
+    return;
+  }
 
   themeToggle.addEventListener("click", function () {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    if (currentTheme === "dark") {
-      document.documentElement.setAttribute("data-theme", "light");
-      themeToggle.innerHTML = "🌙";
-      themeToggle.setAttribute("aria-label", "Toggle dark mode");
-    } else {
-      document.documentElement.setAttribute("data-theme", "dark");
-      themeToggle.innerHTML = "☀️";
-      themeToggle.setAttribute("aria-label", "Toggle light mode");
-    }
+    // Toggle dark-mode class
+    body.classList.toggle("dark-mode");
 
-    // Update charts when theme changes
-    if (typeof window.visualizeSkillGaps === "function") {
+    // Set data-theme attribute for CSS variables
+    const isDarkMode = body.classList.contains("dark-mode");
+    body.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+
+    // Save preference to localStorage
+    localStorage.setItem("dark-mode", isDarkMode);
+
+    // Update the icon based on the theme
+    themeToggle.textContent = isDarkMode ? "🌙" : "☀️";
+
+    // Update charts if they exist
+    if (window.visualizeSkillGaps) {
       window.visualizeSkillGaps();
     }
-    if (typeof window.createSkillRadarChart === "function") {
+    if (window.createSkillRadarChart) {
       window.createSkillRadarChart();
     }
   });
 
-  // Set default theme to dark on initialization
-  if (!document.documentElement.hasAttribute("data-theme")) {
-    document.documentElement.setAttribute("data-theme", "dark");
+  // Check local storage for saved theme
+  const storedDarkMode = localStorage.getItem("dark-mode");
+  if (storedDarkMode === "true") {
+    body.classList.add("dark-mode");
+    body.setAttribute("data-theme", "dark");
+    themeToggle.textContent = "🌙";
+  } else {
+    body.classList.remove("dark-mode");
+    body.setAttribute("data-theme", "light");
+    themeToggle.textContent = "☀️";
   }
 }

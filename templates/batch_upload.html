@@ -12,7 +12,7 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/batch.css') }}"
     />
-    <!-- Add this CSS to the head section -->
+
     <style>
       .file-details {
         flex: 1;
@@ -61,10 +61,57 @@
       .clear-files:hover {
         color: var(--danger-color);
       }
+
+      /* Style for theme toggle button */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        font-size: 1.2rem;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      .theme-toggle:hover {
+        background-color: var(--primary-hover);
+        transform: scale(1.1);
+      }
+
+      /* Add animations and improved UI/UX */
+      .fade-in {
+        animation: fadeIn 1s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="container">
+    <!-- Theme toggle button -->
+    <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">
+      🌓
+    </button>
+
+    <div class="container fade-in">
       <h1>Multiple Resume Matcher</h1>
       <p>
         Upload multiple resumes and match them against a job description to find
