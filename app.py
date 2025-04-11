@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask, jsonify,session,render_template, request, jsonify, send_from_directory, send_file, Response
+from flask import Flask, jsonify, session, render_template, request, jsonify, send_from_directory, send_file, Response, redirect
 import json
 import time
 from config import Config
