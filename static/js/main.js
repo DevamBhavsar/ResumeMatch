@@ -4,6 +4,7 @@ import {
 } from "./modules/chart_utils.js";
 import { initFilePreview } from "./modules/file_preview.js";
 import { initFormValidation } from "./modules/form_validation.js";
+import { initLoadingAnimation } from "./modules/loading_animation.js";
 import { initResultsPage } from "./modules/result_page.js";
 import { initThemeToggle } from "./modules/theme.js";
 
@@ -32,4 +33,15 @@ document.addEventListener("DOMContentLoaded", function () {
       createSkillRadarChart();
     }, 500);
   }
+
+  const form = document.getElementById("matching_form");
+  const loadingOverlay = document.getElementById("loading-overlay");
+
+  if (form && loadingOverlay) {
+    form.addEventListener("submit", function (e) {
+      loadingOverlay.style.display = "flex";
+    });
+  }
+
+  initLoadingAnimation();
 });

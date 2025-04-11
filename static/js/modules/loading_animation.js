@@ -9,30 +9,34 @@ export function initLoadingAnimation() {
   // Make the startLoadingAnimation function globally available
   window.startLoadingAnimation = function () {
     // Reset progress
-    let progress = 0;
-    progressBar.style.width = "0%";
+    if (progressBar) progressBar.style.width = "0%";
 
     // Reset all steps
-    loadingSteps.forEach((step) => {
-      step.classList.remove("active", "completed");
-      const icon = step.querySelector(".step-status");
-      icon.textContent = "⏳";
-      icon.style.transform = "scale(1)";
-      icon.classList.remove("spinning");
-      step.style.animation = "none";
-      step.style.borderLeft = "3px solid var(--text-muted)";
-    });
+    if (loadingSteps) {
+      loadingSteps.forEach((step) => {
+        step.classList.remove("active", "completed");
+        const icon = step.querySelector(".step-status");
+        icon.textContent = "⏳";
+        icon.style.transform = "scale(1)";
+        icon.classList.remove("spinning");
+        step.style.animation = "none";
+        step.style.borderLeft = "3px solid var(--text-muted)";
+      });
+    }
 
     // Activate first step immediately
-    activateStep(0);
+    if (loadingSteps) activateStep(0);
 
     // Start progress animation
     const interval = 50; // Update every 50ms for smooth animation
     const totalTime = 8000; // 8 seconds total
     const increment = (interval / totalTime) * 100;
 
+    let progress = 0;
     const progressInterval = setInterval(() => {
       progress += increment;
+      if (progressBar) progressBar.style.width = `${Math.min(progress, 99)}%`;
+
       // Update the progress bar width (animated)
       progressBar.style.width = `${Math.min(progress, 99)}%`;
 
