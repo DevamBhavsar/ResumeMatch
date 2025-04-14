@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Batch Resume Matcher</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/batch.css') }}"
+    />
+
+    <style>
+      .file-details {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .file-meta {
+        display: flex;
+        align-items: center;
+        margin-top: 0.25rem;
+      }
+
+      .file-type-summary {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: var(--container-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .summary-title {
+        font-weight: bold;
+        margin-right: 0.75rem;
+      }
+
+      .summary-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* Add a clear all button */
+      .clear-files {
+        margin-top: 0.5rem;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 0.85rem;
+        text-decoration: underline;
+      }
+
+      .clear-files:hover {
+        color: var(--danger-color);
+      }
+
+      /* Style for theme toggle button */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        font-size: 1.2rem;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      .theme-toggle:hover {
+        background-color: var(--primary-hover);
+        transform: scale(1.1);
+      }
+
+      /* Add animations and improved UI/UX */
+      .fade-in {
+        animation: fadeIn 1s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Theme toggle button -->
+    <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">
+      🌓
+    </button>
+
+    <div class="container fade-in">
+      <h1>Multiple Resume Matcher</h1>
+      <p>
+        Upload multiple resumes and match them against a job description to find
+        the best candidates!
+      </p>
+
+      <div class="tabs">
+        <a href="/" class="tab">Single Resume</a>
+        <a href="/batch" class="tab active">Multiple Resumes</a>
+      </div>
+
+      <form
+        id="batch_matching_form"
+        action="/batch-upload"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="resumes"
+            >Upload Multiple Resumes (PDF, DOCX, or TXT):</label
+          >
+          <div class="dropzone" id="resume-dropzone">
+            <input
+              type="file"
+              id="resumes"
+              name="resumes"
+              accept=".pdf,.docx,.txt"
+              multiple
+              required
+            />
+            <div class="dropzone-prompt">
+              <i class="upload-icon">📄</i>
+              <p>Drag & drop files here or click to browse</p>
+              <p class="small">Maximum 10 files, 5MB each</p>
+            </div>
+          </div>
+
+          <!-- Files Preview Container -->
+          <div id="files-preview" class="files-preview"></div>
+
+          <!-- File Counter -->
+          <div id="file-counter" class="file-counter" style="display: none">
+            <span id="file-count">0</span> files selected
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="job_description">Paste Job Description:</label>
+          <textarea
+            id="job_description"
+            name="job_description"
+            rows="10"
+            required
+            placeholder="Paste the full job description here..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Rank Candidates</button>
+        </div>
+      </form>
+
+      <!-- Loading indicator -->
+      <div
+        id="loading-indicator"
+        class="loading-container"
+        style="display: none"
+      >
+        <div class="loading-spinner"></div>
+        <h3 class="loading-title">Processing Resumes</h3>
+        <div class="progress-bar-container">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="loading-status" class="loading-status">Initializing...</p>
+        <div class="loading-steps">
+          <div class="loading-step" data-step="1">
+            <span class="step-number">1</span>
+            <span class="step-text">Extracting text from resumes</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="2">
+            <span class="step-number">2</span>
+            <span class="step-text">Analyzing skills and keywords</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="3">
+            <span class="step-number">3</span>
+            <span class="step-text">Calculating match scores</span>
+            <span class="step-status">⏳</span>
+          </div>
+          <div class="loading-step" data-step="4">
+            <span class="step-number">4</span>
+            <span class="step-text">Ranking candidates</span>
+            <span class="step-status">⏳</span>
+          </div>
+        </div>
+        <p class="loading-tip">
+          This may take a moment depending on the number of resumes.
+        </p>
+      </div>
+    </div>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/batch.js') }}"
+    ></script>
+  </body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Candidate Ranking Results</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/batch.css') }}"
+    />
+  </head>
+  <body>
+    <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">
+      ☀️
+    </button>
+    <div class="container results-container">
+      <h1>Candidate Ranking Results</h1>
+
+      <div class="job-description-summary">
+        <h2>Job Description Summary</h2>
+        <div class="jd-skills">
+          <h3>Required Skills</h3>
+          <div class="skills-list">
+            {% if results and results|length > 0 and results[0].jd_skills %} {%
+            for skill in results[0].jd_skills %}
+            <span class="skill-tag jd">{{ skill }}</span>
+            {% endfor %} {% else %}
+            <p>No skills extracted from job description.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="ranking-chart-container">
+        <h2>Candidate Ranking</h2>
+        <div style="position: relative; height: 400px">
+          <canvas id="rankingChart"></canvas>
+        </div>
+      </div>
+
+      <div class="candidates-table">
+        <h2>Detailed Candidate Comparison</h2>
+        <div class="table-responsive">
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Candidate</th>
+                <th>Overall Score</th>
+                <th>Skill Match</th>
+                <th>Text Similarity</th>
+                <th>Semantic Similarity</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for result in results %}
+              <tr class="candidate-row" data-candidate-id="{{ loop.index }}">
+                <td class="rank">{{ result.rank }}</td>
+                <td class="candidate-name">
+                  {{ result.resume_name }} {% if result.contact_info and
+                  result.contact_info.name %}
+                  <span class="candidate-real-name"
+                    >({{ result.contact_info.name }})</span
+                  >
+                  {% endif %}
+                </td>
+                <td class="overall-score">
+                  <div
+                    class="score-pill"
+                    style="background: linear-gradient(to right, 
+                    {% if result.overall_score >= 80 %}var(--success-color){% elif result.overall_score >= 60 %}var(--warning-color){% else %}var(--danger-color){% endif %} 
+                    {{ result.overall_score }}%, 
+                    #e0e0e0 {{ result.overall_score }}%)"
+                  >
+                    {{ result.overall_score }}%
+                  </div>
+                </td>
+                <td>{{ result.skill_match }}%</td>
+                <td>{{ result.text_similarity }}%</td>
+                <td>{{ result.semantic_similarity }}%</td>
+                <td>
+                  <button
+                    class="btn btn-sm view-details-btn"
+                    data-candidate-id="{{ loop.index }}"
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Candidate Details Modal -->
+      <div
+        id="candidate-modal"
+        class="modal"
+        role="dialog"
+        aria-labelledby="modal-candidate-name"
+        aria-hidden="true"
+      >
+        <div class="modal-content" role="document">
+          <span class="close-modal" aria-label="Close">×</span>
+          <h2 id="modal-candidate-name">Candidate Details</h2>
+
+          <div class="candidate-details">
+            <div class="score-container">
+              <div class="overall-score">
+                <h3>Overall Match Score</h3>
+                <div class="score-circle" id="modal-overall-score">
+                  <span class="score-text">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="skills-container">
+              <div class="skills-section">
+                <h3>Matching Skills</h3>
+                <div class="skills-list" id="modal-matching-skills"></div>
+              </div>
+
+              <div class="skills-section">
+                <h3>Missing Skills</h3>
+                <div class="skills-list" id="modal-missing-skills"></div>
+              </div>
+            </div>
+
+            <div class="skill-chart-container">
+              <h3>Skill Gap Analysis</h3>
+              <div style="position: relative; height: 250px">
+                <canvas id="modalSkillGapChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <a href="/batch" class="btn btn-secondary">Try Another Batch</a>
+        <a href="/" class="btn btn-secondary">Single Resume Mode</a>
+      </div>
+    </div>
+
+    <!-- Data for charts -->
+    <script id="ranking-data" type="application/json">
+      {{ results|tojson }}
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/batch-results.js') }}"
+    ></script>
+  </body>
+</html>
