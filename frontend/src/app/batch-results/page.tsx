@@ -1,7 +1,9 @@
 "use client";
 
 import { CandidateTable } from "@/components/batch/CandidateTable";
+import { SkillsDistributionChart } from "@/components/batch/SkillsDistributionChart";
 import { Header } from "@/components/layout/Header";
+import { RankingDistributionChart } from "@/components/results/RankingDistributionChart";
 import { SkillsList } from "@/components/results/SkillsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,6 +88,31 @@ export default function BatchResultsPage() {
           <h1 className="text-3xl font-bold text-center mb-8">
             Candidate Ranking Results
           </h1>
+
+          {/* Analytics Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Skills Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {results?.candidates && results.candidates.length > 0 && (
+                  <SkillsDistributionChart candidates={results.candidates} />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Ranking Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {results?.candidates && (
+                  <RankingDistributionChart candidates={results.candidates} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           <Card className="mb-8">
             <CardHeader>

@@ -9,7 +9,6 @@ from flask import (
     send_from_directory,
     send_file,
     Response,
-    redirect,
 )
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -432,10 +431,6 @@ def batch_results(job_id):
 
         # Log the results size
         logger.info(f"Found results for job_id {job_id}: {len(results)} candidates")
-
-        # Cleanup after retrieving results
-        with job_results_lock:
-            job_results.pop(job_id, None)
 
         # Return the results as JSON
         return jsonify({"candidates": results})

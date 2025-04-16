@@ -1,7 +1,13 @@
 "use client";
 
 import { MatchResult } from "@/lib/types";
-import { Chart, ChartConfiguration, ChartData, ChartOptions, registerables } from "chart.js";
+import {
+  Chart,
+  ChartConfiguration,
+  ChartData,
+  ChartOptions,
+  registerables,
+} from "chart.js";
 import { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 

@@ -120,3 +120,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add these styles to handle scrolling in dialogs */
+.dialog-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styling */
+.dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dialog-content::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border-radius: 4px;
+}
+
+.dialog-content::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+.dialog-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
