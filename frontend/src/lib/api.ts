@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.API_BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -93,8 +93,34 @@ export async function getMatchResult(resultId: string): Promise<MatchResult> {
 }
 
 export async function getBatchResults(resultId: string): Promise<BatchResult> {
-  const response = await axios.get(`${API_BASE_URL}/batch-results/${resultId}`);
-  return response.data;
+  const url = `${API_BASE_URL}/batch-results/${resultId}`;
+  console.log(`Fetching batch results from: ${url}`);
+
+  try {
+    const response = await axios.get(url);
+
+    if (response.status === 202) {
+      // Still processing
+      throw new Error("Results are still being processed");
+    }
+
+    if (!response.data.candidates) {
+      throw new Error(response.data.message || "Invalid response format");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in getBatchResults:", error);
+
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 404) {
+        throw new Error("Results not found or have expired");
+      }
+      throw new Error(error.response?.data?.message || error.message);
+    }
+
+    throw error;
+  }
 }
 
 export async function generateCoverLetter(

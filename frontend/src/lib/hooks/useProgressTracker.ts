@@ -19,8 +19,7 @@ export function useProgressTracker(
 
     console.log(`Setting up progress tracking for job: ${jobId}`);
 
-    // Use the API_BASE_URL from environment variables or default to empty string
-    const API_BASE_URL = process.env.FRONTEND_URL || "";
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
     // Use SSE for progress tracking
     const eventSource = new EventSource(`${API_BASE_URL}/progress/${jobId}`);

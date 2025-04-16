@@ -394,21 +394,55 @@ def process_files_with_progress(job_id, filepaths, temp_dirs, form_data):
             file_handler.cleanup_temp_files(filepath, temp_dir)
 
 
-# Update the batch results endpoint
-@app.route("/batch-results/<job_id>")
+@app.route("/batch-results/<job_id>", methods=["GET"])
 def batch_results(job_id):
-    # Try to get results from our global dictionary
-    results = job_results.get(job_id)
-    if not results:
-        logger.warning(f"No results found for job_id: {job_id}")
-        return redirect("/batch")
+    try:
+        # Log the current state
+        logger.info(f"Retrieving results for job_id: {job_id}")
+        logger.info(f"Available job_ids: {list(job_results.keys())}")
 
-    # Cleanup after retrieving results
-    with job_results_lock:
-        job_results.pop(job_id, None)
+        # Try to get results from our global dictionary
+        results = job_results.get(job_id)
+        if not results:
+            logger.warning(f"No results found for job_id: {job_id}")
+            # Check if the job is still processing
+            if job_id in job_progress:
+                progress_status = job_progress[job_id]
+                if progress_status["status"] == "processing":
+                    return (
+                        jsonify(
+                            {
+                                "error": "Processing",
+                                "message": "Results are still being processed",
+                                "status": progress_status,
+                            }
+                        ),
+                        202,
+                    )
 
-    # Move this after cleanup to avoid unreachable code
-    return render_template("batch_results.html", results=results)
+            return (
+                jsonify(
+                    {
+                        "error": "Not found",
+                        "message": "The requested batch results were not found or have expired",
+                    }
+                ),
+                404,
+            )
+
+        # Log the results size
+        logger.info(f"Found results for job_id {job_id}: {len(results)} candidates")
+
+        # Cleanup after retrieving results
+        with job_results_lock:
+            job_results.pop(job_id, None)
+
+        # Return the results as JSON
+        return jsonify({"candidates": results})
+
+    except Exception as e:
+        logger.error(f"Error retrieving batch results: {str(e)}", exc_info=True)
+        return jsonify({"error": "Server error", "message": str(e)}), 500
 
 
 @app.route("/js/lib/<path:filename>")
