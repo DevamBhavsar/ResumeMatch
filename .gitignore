@@ -221,3 +221,5 @@ frontend/.next/cache
 frontend/.next
 node_modules
 backend/data/processed/
+backend/static
+backend/templates
