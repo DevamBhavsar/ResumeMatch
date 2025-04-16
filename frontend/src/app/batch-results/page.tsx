@@ -11,9 +11,9 @@ import { getBatchResults } from "@/lib/api";
 import { BatchResult } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function BatchResultsPage() {
+function BatchResultsContent() {
   const searchParams = useSearchParams();
   const resultId = searchParams.get("id");
   const [results, setResults] = useState<BatchResult | null>(null);
@@ -161,5 +161,24 @@ export default function BatchResultsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BatchResultsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="container mx-auto py-10 px-4">
+            <div className="flex justify-center items-center h-[50vh]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </main>
+        </div>
+      }
+    >
+      <BatchResultsContent />
+    </Suspense>
   );
 }

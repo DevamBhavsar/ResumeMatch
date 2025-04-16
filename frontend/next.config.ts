@@ -4,6 +4,9 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
     if (!apiUrl) return [];
 

@@ -13,9 +13,9 @@ import { getMatchResult } from "@/lib/api";
 import { MatchResult } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function ResultsPage() {
+function ResultsContent() {
   const searchParams = useSearchParams();
   const resultId = searchParams.get("id");
   const resultData = searchParams.get("data");
@@ -29,7 +29,9 @@ export default function ResultsPage() {
         // First check if we have data directly in the URL
         if (resultData) {
           try {
-            const parsedData = JSON.parse(decodeURIComponent(resultData)) as MatchResult;
+            const parsedData = JSON.parse(
+              decodeURIComponent(resultData)
+            ) as MatchResult;
             setResult(parsedData);
             setLoading(false);
             return;
@@ -80,8 +82,12 @@ export default function ResultsPage() {
           <Card className="max-w-3xl mx-auto">
             <CardContent className="pt-6">
               <div className="text-center py-10">
-                <h2 className="text-2xl font-bold mb-4">Error Loading Results</h2>
-                <p className="text-muted-foreground mb-6">{error || "Result not found"}</p>
+                <h2 className="text-2xl font-bold mb-4">
+                  Error Loading Results
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  {error || "Result not found"}
+                </p>
                 <Link href="/">
                   <Button>Return to Home</Button>
                 </Link>
@@ -103,7 +109,9 @@ export default function ResultsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <Card className="md:col-span-1">
               <CardHeader>
-                <CardTitle className="text-center">Overall Match Score</CardTitle>
+                <CardTitle className="text-center">
+                  Overall Match Score
+                </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
                 <ScoreCircle score={result.overall_score} size="lg" />
@@ -116,8 +124,14 @@ export default function ResultsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <ScoreBar score={result.skill_match} label="Skill Match" />
-                <ScoreBar score={result.text_similarity} label="Text Similarity" />
-                <ScoreBar score={result.semantic_similarity} label="Semantic Similarity" />
+                <ScoreBar
+                  score={result.text_similarity}
+                  label="Text Similarity"
+                />
+                <ScoreBar
+                  score={result.semantic_similarity}
+                  label="Semantic Similarity"
+                />
               </CardContent>
             </Card>
           </div>
@@ -154,28 +168,28 @@ export default function ResultsPage() {
             <CardContent>
               {result.overall_score >= 80 ? (
                 <p>
-                  You're a strong match for this position! Consider highlighting your
-                  matching skills in your application.
+                  You're a strong match for this position! Consider highlighting
+                  your matching skills in your application.
                 </p>
               ) : result.overall_score >= 60 ? (
                 <p>
-                  You're a good match for this position, but might want to address
-                  some of the missing skills in your application.
+                  You're a good match for this position, but might want to
+                  address some of the missing skills in your application.
                 </p>
               ) : (
                 <p>
-                  This position may require more skills than currently demonstrated on
-                  your resume. Consider acquiring the missing skills or highlighting
-                  transferable skills.
+                  This position may require more skills than currently
+                  demonstrated on your resume. Consider acquiring the missing
+                  skills or highlighting transferable skills.
                 </p>
               )}
             </CardContent>
           </Card>
 
           <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <CoverLetterGenerator 
-              matchingSkills={result.matching_skills} 
-              missingSkills={result.missing_skills} 
+            <CoverLetterGenerator
+              matchingSkills={result.matching_skills}
+              missingSkills={result.missing_skills}
             />
             <Link href="/">
               <Button variant="outline">Try Another</Button>
@@ -184,5 +198,13 @@ export default function ResultsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResultsContent />
+    </Suspense>
   );
 }
