@@ -41,7 +41,7 @@ RUN python -m spacy download en_core_web_md
 COPY backend/ ./backend/
 
 # Copy built frontend files
-COPY --from=frontend-build /app/frontend/out /app/backend/static/frontend
+COPY --from=frontend-build /app/frontend/.next  /app/backend/static/frontend
 
 # Create necessary directories
 RUN mkdir -p backend/data/processed backend/logs
