@@ -1,20 +1,24 @@
 import type { NextConfig } from "next";
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    if (!apiUrl) return [];
+
     return [
       {
         source: "/progress/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/progress/:path*`,
+        destination: `${apiUrl}/progress/:path*`,
       },
       {
         source: "/ws/progress/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/ws/progress/:path*`,
+        destination: `${apiUrl}/ws/progress/:path*`,
       },
       {
         source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`,
+        destination: `${apiUrl}/:path*`,
       },
     ];
   },
