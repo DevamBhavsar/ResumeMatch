@@ -1,7 +1,12 @@
 import axios from "axios";
-import { BatchResult, MatchResult, UploadResponse } from "./types";
+import {
+  BatchResult,
+  MatchResult,
+  QuestionAnswer,
+  UploadResponse,
+} from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Create axios instance with default config
 const api = axios.create({
@@ -12,6 +17,22 @@ const api = axios.create({
   withCredentials: true, // Required for cookies/sessions
   timeout: 30000, // 30 second timeout
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  (config) => {
+    console.log("Making request to:", config.url, {
+      method: config.method,
+      data: config.data,
+      headers: config.headers,
+    });
+    return config;
+  },
+  (error) => {
+    console.error("Request error:", error);
+    return Promise.reject(error);
+  }
+);
 
 // Update the error handling
 api.interceptors.response.use(
@@ -183,4 +204,47 @@ export async function getChartImage(
 
   const blob = await response.blob();
   return URL.createObjectURL(blob);
+}
+// Generate interview questions based on job description skills
+export async function generateInterviewQuestions(
+  skills: string[],
+  jobDescription: string,
+  includeSoftSkills: boolean = true
+): Promise<{
+  technicalQuestions: QuestionAnswer[];
+  softSkillQuestions: QuestionAnswer[];
+}> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    console.log(
+      "Making API request to:",
+      `${apiUrl}/generate-interview-questions`
+    );
+
+    const response = await fetch(`${apiUrl}/generate-interview-questions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        skills,
+        job_description: jobDescription,
+        include_soft_skills: includeSoftSkills,
+      }),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      technicalQuestions: data.technical_questions || [],
+      softSkillQuestions: data.soft_skill_questions || [],
+    };
+  } catch (error) {
+    console.error("Error in API call:", error);
+    throw error;
+  }
 }

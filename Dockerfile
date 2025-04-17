@@ -20,12 +20,14 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=backend/app.py \
-    FLASK_ENV=production
+    FLASK_ENV=production \
+    OLLAMA_URL=http://host.docker.internal:11434
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libmagic1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements file
@@ -48,6 +50,10 @@ RUN mkdir -p backend/data/processed backend/logs
 
 # Expose port
 EXPOSE 5000
+
+# Add healthcheck for the API
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5000/check-health || exit 1
 
 # Run the application
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "backend.app:app"]

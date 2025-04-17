@@ -14,6 +14,7 @@ A modern web application that analyzes resumes against job descriptions using Na
 - **Modern UI**: Responsive design with dark mode support
 - **Real-time Progress Tracking**: WebSocket-based progress updates
 - **Document Generation**: Export results as PDF or DOCX
+- **AI Interview Questions**: Generate tailored technical and soft skill interview questions with expert answers
 
 ## Technical Stack
 
@@ -23,6 +24,7 @@ A modern web application that analyzes resumes against job descriptions using Na
 - **NLP Engine**: spaCy 3.5+, scikit-learn 1.0+
 - **File Processing**: PyPDF2 2.0+, python-docx 0.8.11+
 - **WebSockets**: flask-sock, simple-websocket
+- **LLM Integration**: Ollama API
 - **Deployment**: Docker, Gunicorn 20.1.0
 
 ### Frontend
@@ -43,6 +45,7 @@ A modern web application that analyzes resumes against job descriptions using Na
 2. Node.js 18 or higher
 3. pnpm package manager
 4. Docker (optional)
+5. Ollama
 
 ## Installation
 
@@ -56,12 +59,22 @@ A modern web application that analyzes resumes against job descriptions using Na
    ```
 
 2. Setup Python environment:
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    cd backend
    pip install -r requirements.txt
    python -m spacy download en_core_web_md
+   ```
+
+3. Setup Ollama:
+   ```bash
+   # Install Ollama following instructions at https://ollama.ai/
+   # Pull the llama2 model
+   ollama pull llama2
+   # Start the Ollama server
+   ollama serve
    ```
 
 ### Frontend Setup
@@ -93,9 +106,16 @@ A modern web application that analyzes resumes against job descriptions using Na
    pnpm dev
    ```
 
-3. Access the application:
+3. Start Ollama server (for interview question generation):
+
+   ```bash
+   ollama serve
+   ```
+
+4. Access the application:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:5000
+   - Interview Questions Generator: http://localhost:3000/interview-questions
 
 ## Deployment
 
@@ -151,7 +171,18 @@ FLASK_ENV=production
 FLASK_APP=app.py
 SECRET_KEY=your_secret_key_here
 FRONTEND_URL=http://localhost:3000
+OLLAMA_URL=http://localhost:11434  # URL for Ollama API
 ```
+
+## Interview Questions Generator
+
+The application includes an AI-powered interview question generator that:
+
+- Creates tailored technical questions based on job description skills
+- Provides expert answers for each question
+- Includes common soft skill questions with professional answers
+- Allows copying individual questions or entire sets
+- Can be accessed directly at `/interview-questions` or from batch results
 
 ## Acknowledgments
 
@@ -162,3 +193,8 @@ FRONTEND_URL=http://localhost:3000
 - **Flask**: Backend framework
 - **PyPDF2** & **python-docx**: File parsing
 - **Chart.js**: Data visualization
+- **Ollama**: Local LLM capabilities
+
+```
+
+```

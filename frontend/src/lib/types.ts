@@ -72,3 +72,14 @@ export interface JobStatus {
   status: "processing" | "completed" | "error" | "cancelled";
   progress: number;
 }
+export interface QuestionAnswer {
+  question: string;
+  answer: string;
+  skill?: string;
+}
+
+export interface InterviewQuestionsResponse {
+  technical_questions: QuestionAnswer[];
+  soft_skill_questions: QuestionAnswer[];
+  error?: string;
+}
