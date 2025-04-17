@@ -103,7 +103,7 @@ export default function InterviewQuestionsPage() {
       <main className="container mx-auto py-10 px-4">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-center mb-2">
-            Smart Interview Questions Generator
+            Interview Questions Generator
           </h1>
           <p className="text-center text-muted-foreground mb-8">
             Generate tailored technical interview questions with expert answers

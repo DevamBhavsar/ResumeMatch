@@ -4,7 +4,6 @@ from flask import (
     Flask,
     jsonify,
     session,
-    render_template,
     request,
     send_from_directory,
     send_file,
@@ -19,7 +18,7 @@ import queue
 from threading import Thread, Lock, Event
 from config import Config
 from utils.file_handler import FileHandler
-from utils.error_handler import ErrorHandler
+
 from utils.resume_parser import ResumeParser
 from utils.jd_parser import JobDescriptionParser
 from utils.matcher import ResumeMatcher
@@ -57,10 +56,15 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": [os.environ.get("FRONTEND_URL", "http://localhost:3000")],
+            "origins": [
+                "http://localhost:3000",
+                "http://localhost:11434",
+            ],  # Frontend URL
             "supports_credentials": True,
             "allow_headers": ["Content-Type", "Authorization"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "max_age": 3600,
         }
     },
 )
