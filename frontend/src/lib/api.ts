@@ -1,5 +1,10 @@
 import axios from "axios";
-import { BatchResult, MatchResult, UploadResponse } from "./types";
+import {
+  BatchResult,
+  MatchResult,
+  QuestionAnswer,
+  UploadResponse,
+} from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -183,4 +188,54 @@ export async function getChartImage(
 
   const blob = await response.blob();
   return URL.createObjectURL(blob);
+}
+// Generate interview questions based on job description skills
+export async function generateInterviewQuestions(
+  skills: string[],
+  jobDescription: string,
+  includeSoftSkills: boolean = true
+): Promise<{
+  technicalQuestions: QuestionAnswer[];
+  softSkillQuestions: QuestionAnswer[];
+}> {
+  try {
+    console.log("Making API request to generate interview questions:", {
+      skills,
+      job_description: jobDescription,
+      include_soft_skills: includeSoftSkills,
+    });
+
+    const response = await api.post("/generate-interview-questions", {
+      skills,
+      job_description: jobDescription,
+      include_soft_skills: includeSoftSkills,
+    });
+
+    console.log("Received API response:", response.data);
+
+    return {
+      technicalQuestions: response.data.technical_questions || [],
+      softSkillQuestions: response.data.soft_skill_questions || [],
+    };
+  } catch (error) {
+    console.error("Error generating interview questions:", error);
+
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+        },
+      });
+    }
+
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate questions: ${error.message}`);
+    }
+    throw new Error("Failed to generate interview questions");
+  }
 }

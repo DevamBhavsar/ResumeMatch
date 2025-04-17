@@ -28,6 +28,7 @@ from services.matching_service import MatchingService
 from services.batch_matching_service import BatchMatchingService
 import uuid
 from flask_sock import Sock
+from services.question_generator_service import QuestionGeneratorService
 
 # Configure logging
 logging.basicConfig(
@@ -72,6 +73,8 @@ Config.init_app()
 
 # Initialize components
 try:
+    question_generator = QuestionGeneratorService()
+    logger.info("Question generator service initialized")
     file_handler = FileHandler(Config)
     resume_parser = ResumeParser(Config.SKILLS_DB_PATH)
     jd_parser = JobDescriptionParser(Config.SKILLS_DB_PATH)
@@ -783,6 +786,62 @@ def handle_request_too_large(e):
         ),
         413,
     )
+
+
+@app.route("/generate-interview-questions", methods=["POST"])
+def generate_interview_questions():
+    """
+    Generate interview questions and answers based on job description skills
+    """
+    try:
+        if not question_generator:
+            return jsonify({"error": "Question generator service not available"}), 500
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        job_description = data.get("job_description", "")
+        skills = data.get("skills", [])
+        include_soft_skills = data.get("include_soft_skills", False)
+
+        # Validate input - either job description or skills must be provided
+        if not job_description and not skills:
+            return jsonify({"error": "Job description or skills required"}), 400
+
+        # If skills not provided but job description is, extract skills from job description
+        if not skills and job_description:
+            jd_data = jd_parser.process_job_description(job_description)
+            skills = jd_data["skills"]
+            logger.info(f"Extracted {len(skills)} skills from job description")
+
+        # Generate technical questions
+        technical_questions = question_generator.generate_questions(
+            skills, job_description
+        )
+        logger.info(
+            f"Generated {len(technical_questions)} technical interview questions"
+        )
+
+        # Get soft skill questions if requested
+        soft_skill_questions = []
+        if include_soft_skills:
+            soft_skill_questions = question_generator.get_soft_skill_questions()
+            logger.info(f"Added {len(soft_skill_questions)} soft skill questions")
+
+        return jsonify(
+            {
+                "technical_questions": technical_questions,
+                "soft_skill_questions": soft_skill_questions,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating interview questions: {str(e)}", exc_info=True)
+        return (
+            jsonify({"error": "Failed to generate questions", "message": str(e)}),
+            500,
+        )
 
 
 if __name__ == "__main__":

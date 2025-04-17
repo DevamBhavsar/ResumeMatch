@@ -11,7 +11,7 @@ beautifulsoup4==4.12.2
 # WebSocket dependencies with fixed versions
 simple-websocket==0.10.1
 flask-sock==0.5.2
-greenlet==3.0.3  # Updated to match playwright requirement
+greenlet==3.0.3
 eventlet==0.33.3
 
 # NLP and ML dependencies
@@ -26,3 +26,5 @@ flask-dropzone>=1.6.0
 flask-cors==3.0.10
 python-dotenv==0.19.0
 
+# LLM integration
+requests>=2.28.0
