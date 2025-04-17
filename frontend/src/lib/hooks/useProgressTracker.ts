@@ -19,6 +19,8 @@ export function useProgressTracker(
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProgressUpdateRef = useRef<number>(Date.now());
   const isProcessingRef = useRef<boolean>(false);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const maxReconnectAttempts = 5;
 
   // Store job status to prevent cancellation after completion
   const jobStatusRef = useRef<string>("processing");
@@ -65,14 +67,33 @@ export function useProgressTracker(
     setIsConnected(false);
   }, []);
 
-  useEffect(() => {
+  // Setup EventSource connection
+  const setupEventSource = useCallback(() => {
     if (!jobId) return;
 
-    console.log(`Setting up progress tracking for job: ${jobId}`);
-    isProcessingRef.current = true;
-    jobStatusRef.current = "processing"; // Reset job status
+    // Don't reconnect if we've reached max attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.log(
+        `Max reconnection attempts (${maxReconnectAttempts}) reached for job: ${jobId}`
+      );
+      if (onError) {
+        onError("Failed to maintain connection after multiple attempts");
+      }
+      return;
+    }
 
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+    // Close existing connection if any
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    console.log(
+      `Setting up progress tracking for job: ${jobId} (attempt ${
+        reconnectAttemptsRef.current + 1
+      })`
+    );
 
     // Use SSE for progress tracking
     const eventSource = new EventSource(`${API_BASE_URL}/progress/${jobId}`);
@@ -82,6 +103,7 @@ export function useProgressTracker(
     eventSource.onopen = () => {
       console.log(`Connected to progress stream for job: ${jobId}`);
       setIsConnected(true);
+      reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
     };
 
     eventSource.onmessage = (event) => {
@@ -126,10 +148,37 @@ export function useProgressTracker(
     eventSource.onerror = (error) => {
       console.error("EventSource error:", error);
       cleanupConnection();
-      if (onError) {
+
+      // Attempt to reconnect if still processing
+      if (jobStatusRef.current === "processing") {
+        reconnectAttemptsRef.current++;
+        console.log(
+          `Connection error, attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
+        );
+
+        // Exponential backoff for reconnection attempts
+        const backoffTime = Math.min(
+          1000 * Math.pow(2, reconnectAttemptsRef.current - 1),
+          10000
+        );
+        setTimeout(() => {
+          setupEventSource();
+        }, backoffTime);
+      } else if (onError) {
         onError("Lost connection to server");
       }
     };
+  }, [jobId, onComplete, onError, cleanupConnection]);
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    isProcessingRef.current = true;
+    jobStatusRef.current = "processing"; // Reset job status
+    reconnectAttemptsRef.current = 0; // Reset reconnect attempts
+
+    // Initial setup of EventSource
+    setupEventSource();
 
     // Set up a watchdog timer to detect stalled progress
     const watchdog = setInterval(() => {
@@ -138,7 +187,15 @@ export function useProgressTracker(
         // 30 seconds without updates
         console.warn("Progress updates stalled, closing connection");
         cleanupConnection();
-        if (onError) {
+
+        // Try to reconnect if still processing
+        if (jobStatusRef.current === "processing") {
+          reconnectAttemptsRef.current++;
+          console.log(
+            `Connection stalled, attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
+          );
+          setupEventSource();
+        } else if (onError) {
           onError("Progress updates stalled");
         }
       }
@@ -149,8 +206,7 @@ export function useProgressTracker(
     return () => {
       console.log(`Cleaning up progress tracking for job: ${jobId}`);
 
-      // TODO: Disable job cancellation in development mode
-      // This prevents jobs from being cancelled during hot reloads
+      // Skip job cancellation in development mode
       const isDevelopment = process.env.NODE_ENV === "development";
 
       if (
@@ -170,7 +226,7 @@ export function useProgressTracker(
 
       cleanupConnection();
     };
-  }, [jobId, onComplete, onError, cleanupConnection, cancelCurrentJob]);
+  }, [jobId, setupEventSource, onError, cleanupConnection, cancelCurrentJob]);
 
   return {
     progress,

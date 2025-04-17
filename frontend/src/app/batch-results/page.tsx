@@ -11,8 +11,7 @@ import { getBatchResults } from "@/lib/api";
 import { BatchResult } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 function BatchResultsContent() {
   const searchParams = useSearchParams();
   const resultId = searchParams.get("id");
@@ -21,6 +20,48 @@ function BatchResultsContent() {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 5; // More retries for batch processing
+  const [pollingEnabled, setPollingEnabled] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    setPollingEnabled(true);
+
+    pollingIntervalRef.current = setInterval(async () => {
+      if (!resultId) return;
+
+      try {
+        const data = await getBatchResults(resultId);
+        setResults(data);
+        setLoading(false);
+
+        // Stop polling once we get results
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      } catch (err) {
+        // Only log errors, don't update state to avoid UI flicker
+        if (
+          err instanceof Error &&
+          !err.message.includes("still being processed")
+        ) {
+          console.error("Polling error:", err);
+        }
+      }
+    }, 5000); // Poll every 5 seconds
+  }, [resultId]);
+
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchResults() {
@@ -51,6 +92,14 @@ function BatchResultsContent() {
               setRetryCount((prev) => prev + 1);
             }, 3000);
             return;
+          } else if (
+            err instanceof Error &&
+            (err.message.includes("Lost connection") ||
+              err.message.includes("Network error"))
+          ) {
+            console.log("Connection issues detected, falling back to polling");
+            startPolling();
+            return;
           }
 
           throw err;
@@ -65,8 +114,7 @@ function BatchResultsContent() {
     }
 
     fetchResults();
-  }, [resultId, retryCount]);
-
+  }, [resultId, retryCount, startPolling]);
   if (loading) {
     return (
       <div className="min-h-screen bg-background">

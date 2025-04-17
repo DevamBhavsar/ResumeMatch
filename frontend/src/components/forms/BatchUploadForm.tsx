@@ -41,23 +41,28 @@ export function BatchUploadForm() {
         router.push(`/batch-results?id=${jobId}`);
       }
     },
-
     onError: (message: string) => {
       console.error(`Batch processing error: ${message}`);
 
       // If we lose connection but the job might still be processing,
       // provide a way for the user to check results
       if (
-        message === "Lost connection to server" ||
-        message === "Progress updates stalled"
+        message.includes("Lost connection") ||
+        message.includes("Failed to maintain connection") ||
+        message.includes("stalled")
       ) {
-        toast.error("Connection lost", {
+        toast.error("Connection issue", {
           description:
-            "Lost connection to the server, but your job may still be processing. You can check results later.",
+            "Connection to the server was lost, but your job may still be processing. You can check results later.",
           action: {
             label: "Check Results",
             onClick: () => router.push(`/batch-results?id=${jobId}`),
           },
+          duration: 10000, // Show for longer
+        });
+      } else if (message.includes("cancelled")) {
+        toast.info("Processing cancelled", {
+          description: "The batch processing job was cancelled.",
         });
       } else {
         toast.error("Processing error", {
