@@ -5,7 +5,7 @@ import { useFileUpload } from "@/lib/hooks/useFileUpload";
 import { useProgressTracker } from "@/lib/hooks/useProgressTracker";
 import { formatFileSize } from "@/lib/utils/file-utils";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorDisplay } from "../common/ErrorDisplay";
 import { LoadingIndicator } from "../common/LoadingIndicator";
@@ -20,49 +20,87 @@ export function ResumeUploadForm() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { files, handleFileSelect, removeFile } = useFileUpload({
     maxFiles: 1,
-    onError: (message) => toast.error("Error",{ description: message,  }),
+    maxSizeMB: 5,
+    acceptedFileTypes: [".pdf", ".docx", ".txt"],
+    onError: (message) => toast.error("Error", { description: message }),
   });
-  
-  const { progress } = useProgressTracker(jobId, {
-    onComplete: (redirectUrl) => {
+
+  const onComplete = useCallback(
+    (redirectUrl: string | undefined) => {
       if (redirectUrl) {
         router.push(redirectUrl);
+      } else if (jobId) {
+        router.push(`/results?id=${jobId}`);
       } else {
         router.push("/results");
       }
     },
-    onError: (message) => {
-      toast.error("Error",{ description: message,  });
+    [router, jobId]
+  );
+
+  const onError = useCallback(
+    (message: string) => {
+      toast.error("Error", { description: message });
       setIsSubmitting(false);
       setJobId(null);
     },
+    [setIsSubmitting, setJobId]
+  );
+
+  const { progress, cancelJob } = useProgressTracker(jobId, {
+    onComplete,
+    onError,
   });
+  // Add a ref to track job status
+  const jobStatusRef = useRef<string>("processing");
+
+  // Update the job status when progress updates
+  useEffect(() => {
+    if (progress?.status) {
+      jobStatusRef.current = progress.status;
+    }
+  }, [progress]);
+
+  // Modify the cleanup effect
+  useEffect(() => {
+    return () => {
+      // Only cancel if still submitting AND job is still processing
+      if (isSubmitting && jobId && jobStatusRef.current === "processing") {
+        console.log(
+          "Component unmounting during active processing, cancelling job"
+        );
+        cancelJob();
+      }
+    };
+  }, [isSubmitting, jobId, cancelJob]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (files.length === 0) {
       toast.error("Missing resume", {
         description: "Please upload a resume file",
       });
       return;
     }
-    
+
     if (!jobDescription.trim()) {
       toast.error("Missing job description", {
         description: "Please enter a job description",
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
+      console.log("Uploading file:", files[0].name);
       const response = await uploadResumeAndMatch(files[0], jobDescription);
-      
+      console.log("Upload response:", response);
+
       if (!response.success) {
         setError(response.error || "Failed to process resume");
         setIsSubmitting(false);
@@ -70,22 +108,41 @@ export function ResumeUploadForm() {
       }
 
       // Check if we got a jobId for progress tracking
-      if (response.jobId) {
-        setJobId(response.jobId);
+      if (response.job_id) {
+        console.log("Job ID received:", response.job_id);
+        // Only set jobId once and don't change it during processing
+        setJobId((prevJobId) =>
+          prevJobId !== null ? prevJobId : response.job_id || null
+        );
       } else if (response.result) {
         // Direct result without progress tracking
+        console.log("Direct result received");
         const encodedData = encodeURIComponent(JSON.stringify(response.result));
         router.push(`/results?data=${encodedData}`);
       } else {
-        throw new Error("Invalid response format");
+        console.error("Invalid response format:", response);
+        throw new Error(
+          "Invalid response format: neither jobId nor result found in response"
+        );
       }
-
     } catch (error) {
       console.error("Error submitting form:", error);
-      setError(error instanceof Error ? error.message : "Failed to process resume");
+      setError(
+        error instanceof Error ? error.message : "Failed to process resume"
+      );
       setIsSubmitting(false);
     }
   };
+  const handleCancelJob = async () => {
+    try {
+      await cancelJob();
+      toast.info("Processing cancelled");
+      setIsSubmitting(false);
+    } catch (error) {
+      toast.error("Failed to cancel processing");
+    }
+  };
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFileSelect(Array.from(e.target.files));
@@ -94,13 +151,13 @@ export function ResumeUploadForm() {
 
   if (error) {
     return (
-      <ErrorDisplay 
-        title="Processing Error" 
-        message={error} 
+      <ErrorDisplay
+        title="Processing Error"
+        message={error}
         onRetry={() => {
           setError(null);
           setIsSubmitting(false);
-        }} 
+        }}
       />
     );
   }
@@ -119,7 +176,10 @@ export function ResumeUploadForm() {
               onChange={handleFileInputChange}
               disabled={isSubmitting}
             />
-            <label htmlFor="resume" className="cursor-pointer flex flex-col items-center">
+            <label
+              htmlFor="resume"
+              className="cursor-pointer flex flex-col items-center"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-10 w-10 text-muted-foreground mb-2"
@@ -194,7 +254,11 @@ export function ResumeUploadForm() {
         </Button>
       </form>
 
-      <LoadingIndicator progress={progress} visible={isSubmitting} />
+      <LoadingIndicator
+        progress={progress}
+        visible={isSubmitting}
+        onCancel={handleCancelJob}
+      />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { BatchResult, MatchResult, UploadResponse } from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // Create axios instance with default config
 const api = axios.create({
@@ -10,6 +10,7 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true, // Required for cookies/sessions
+  timeout: 30000, // 30 second timeout
 });
 
 // Update the error handling
@@ -32,7 +33,7 @@ api.interceptors.response.use(
   }
 );
 
-// Update uploadResumeAndMatch to handle the actual response structure
+// Upload a single resume and match against job description
 export async function uploadResumeAndMatch(
   resume: File,
   jobDescription: string
@@ -48,10 +49,21 @@ export async function uploadResumeAndMatch(
       },
     });
 
-    // Add typecasting to ensure response.data matches our interface
-    const data = response.data as UploadResponse;
+    // Log the raw response for debugging
+    console.log("Raw API response:", response.data);
+
+    // Handle snake_case to camelCase conversion
+    const data: UploadResponse = {
+      success: response.data.success || false,
+      error: response.data.error,
+      result: response.data.result,
+      // Convert job_id to jobId if present
+      job_id: response.data.job_id || response.data.jobId,
+    };
+
     return data;
   } catch (error) {
+    console.error("Error in uploadResumeAndMatch:", error);
     if (error instanceof Error) {
       return {
         success: false,
@@ -65,7 +77,7 @@ export async function uploadResumeAndMatch(
   }
 }
 
-// Update uploadBatchAndMatch to use the api instance consistently
+// Upload multiple resumes and match against job description
 export async function uploadBatchAndMatch(
   resumes: File[],
   jobDescription: string
@@ -87,17 +99,19 @@ export async function uploadBatchAndMatch(
   return response.data;
 }
 
+// Get results for a single resume match
 export async function getMatchResult(resultId: string): Promise<MatchResult> {
-  const response = await axios.get(`${API_BASE_URL}/results/${resultId}`);
-  return response.data;
+  const response = await api.get(`/results/${resultId}`);
+  return response.data.result;
 }
 
+// Get results for a batch match
 export async function getBatchResults(resultId: string): Promise<BatchResult> {
-  const url = `${API_BASE_URL}/batch-results/${resultId}`;
+  const url = `/batch-results/${resultId}`;
   console.log(`Fetching batch results from: ${url}`);
 
   try {
-    const response = await axios.get(url);
+    const response = await api.get(url);
 
     if (response.status === 202) {
       // Still processing
@@ -123,11 +137,23 @@ export async function getBatchResults(resultId: string): Promise<BatchResult> {
   }
 }
 
+// Cancel a running job
+export async function cancelJob(jobId: string): Promise<boolean> {
+  try {
+    const response = await api.post(`/cancel-job/${jobId}`);
+    return response.data.success || false;
+  } catch (error) {
+    console.error("Error cancelling job:", error);
+    return false;
+  }
+}
+
+// Generate a cover letter based on matching and missing skills
 export async function generateCoverLetter(
   matchingSkills: string[],
   missingSkills: string[]
 ) {
-  const response = await axios.post(`${API_BASE_URL}/generate-cover-letter`, {
+  const response = await api.post(`/generate-cover-letter`, {
     matching_skills: matchingSkills,
     missing_skills: missingSkills,
   });

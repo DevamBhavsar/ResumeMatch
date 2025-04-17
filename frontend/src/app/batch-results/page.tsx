@@ -19,6 +19,8 @@ function BatchResultsContent() {
   const [results, setResults] = useState<BatchResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 5; // More retries for batch processing
 
   useEffect(() => {
     async function fetchResults() {
@@ -29,26 +31,59 @@ function BatchResultsContent() {
           return;
         }
 
-        const data = await getBatchResults(resultId);
-        setResults(data);
+        try {
+          const data = await getBatchResults(resultId);
+          setResults(data);
+          setLoading(false);
+        } catch (err) {
+          // Check if we should retry (only for "still processing" errors)
+          if (
+            err instanceof Error &&
+            err.message.includes("still being processed") &&
+            retryCount < maxRetries
+          ) {
+            console.log(
+              `Batch results still processing, retrying in 3 seconds (${
+                retryCount + 1
+              }/${maxRetries})`
+            );
+            setTimeout(() => {
+              setRetryCount((prev) => prev + 1);
+            }, 3000);
+            return;
+          }
+
+          throw err;
+        }
       } catch (err) {
         console.error("Error fetching results:", err);
-        setError("Failed to load batch results");
-      } finally {
+        setError(
+          err instanceof Error ? err.message : "Failed to load batch results"
+        );
         setLoading(false);
       }
     }
 
     fetchResults();
-  }, [resultId]);
+  }, [resultId, retryCount]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto py-10 px-4">
-          <div className="flex justify-center items-center h-[50vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="flex flex-col justify-center items-center h-[50vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">
+              {retryCount > 0
+                ? `Loading batch results (attempt ${retryCount}/${maxRetries})...`
+                : "Loading batch results..."}
+            </p>
+            {retryCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Batch processing may take longer for multiple resumes
+              </p>
+            )}
           </div>
         </main>
       </div>

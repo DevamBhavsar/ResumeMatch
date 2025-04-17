@@ -11,13 +11,21 @@ export interface JobDescription {
 }
 
 export interface ProgressUpdate {
-  status: "processing" | "completed" | "error";
+  status: "processing" | "completed" | "error" | "cancelled";
   progress: number;
-  stage?: "extracting" | "analyzing" | "calculating" | "ranking";
+  stage?:
+    | "extracting"
+    | "analyzing"
+    | "calculating"
+    | "ranking"
+    | "parsing"
+    | "finalizing"
+    | "complete"
+    | "error";
   message: string;
   redirect_url?: string;
-  type?: "heartbeat"; // Add this for WebSocket heartbeat messages
-  timestamp?: number; // Add this for WebSocket heartbeat messages
+  type?: "heartbeat"; //  for WebSocket heartbeat messages
+  timestamp?: number; //  for WebSocket heartbeat messages
 }
 
 export interface ContactInfo {
@@ -56,5 +64,11 @@ export interface UploadResponse {
   success: boolean;
   error?: string;
   result?: MatchResult;
-  jobId?: string;
+  job_id?: string;
+}
+
+export interface JobStatus {
+  jobId: string;
+  status: "processing" | "completed" | "error" | "cancelled";
+  progress: number;
 }

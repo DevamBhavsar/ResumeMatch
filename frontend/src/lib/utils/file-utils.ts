@@ -34,27 +34,30 @@ export function getFileTypeLabel(mimeType: string): string {
   }
 }
 
-export function validateFile(file: File) {
-  const maxFileSize = 5 * 1024 * 1024; // 5MB
-  const allowedTypes = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "text/plain",
-  ];
-
-  // Check file size
-  if (file.size > maxFileSize) {
+export function validateFile(
+  file: File,
+  maxSizeMB: number = 5,
+  acceptedFileTypes: string[] = [".pdf", ".docx", ".txt"]
+): { valid: boolean; error?: string } {
+  // Check file size (default 5MB limit)
+  const maxSize = maxSizeMB * 1024 * 1024; // Convert MB to bytes
+  if (file.size > maxSize) {
     return {
       valid: false,
-      error: `File size exceeds 5MB limit: ${file.name}`,
+      error: `File ${file.name} is too large. Maximum size is ${maxSizeMB}MB.`,
     };
   }
 
   // Check file type
-  if (!allowedTypes.includes(file.type)) {
+  const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`;
+  if (!acceptedFileTypes.includes(fileExtension)) {
     return {
       valid: false,
-      error: `File type not supported (only PDF, DOCX, and TXT allowed): ${file.name}`,
+      error: `File ${
+        file.name
+      } has an unsupported format. Accepted formats: ${acceptedFileTypes.join(
+        ", "
+      )}`,
     };
   }
 

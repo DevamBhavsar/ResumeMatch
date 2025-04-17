@@ -1,19 +1,30 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FileWithPreview } from "../types";
 import { validateFile } from "../utils/file-utils";
 
 interface UseFileUploadOptions {
   maxFiles?: number;
+  maxSizeMB?: number;
+  acceptedFileTypes?: string[];
   onError?: (message: string) => void;
 }
 
 export function useFileUpload({
   maxFiles = 10,
+  maxSizeMB = 5,
+  acceptedFileTypes = [".pdf", ".docx", ".txt"],
   onError,
 }: UseFileUploadOptions = {}) {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      files.forEach((file) => URL.revokeObjectURL(file.preview));
+    };
+  }, [files]);
 
   const handleFileSelect = useCallback(
     (newFiles: File[]) => {
@@ -29,7 +40,11 @@ export function useFileUpload({
 
       // Validate each file
       for (const file of newFiles) {
-        const { valid, error } = validateFile(file);
+        const { valid, error } = validateFile(
+          file,
+          maxSizeMB,
+          acceptedFileTypes
+        );
 
         if (valid) {
           // Check for duplicates
@@ -45,6 +60,8 @@ export function useFileUpload({
             }) as FileWithPreview;
 
             validFiles.push(fileWithPreview);
+          } else {
+            errors.push(`Duplicate file: ${file.name}`);
           }
         } else if (error) {
           errors.push(error);
@@ -61,7 +78,7 @@ export function useFileUpload({
         setFiles((prevFiles) => [...prevFiles, ...validFiles]);
       }
     },
-    [files, maxFiles, onError]
+    [files, maxFiles, maxSizeMB, acceptedFileTypes, onError]
   );
 
   const removeFile = useCallback((index: number) => {
@@ -80,16 +97,10 @@ export function useFileUpload({
     setFiles([]);
   }, [files]);
 
-  // Clean up object URLs when component unmounts
-  const cleanup = useCallback(() => {
-    files.forEach((file) => URL.revokeObjectURL(file.preview));
-  }, [files]);
-
   return {
     files,
     handleFileSelect,
     removeFile,
     clearFiles,
-    cleanup,
   };
 }

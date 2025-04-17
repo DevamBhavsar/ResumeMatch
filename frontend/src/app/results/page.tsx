@@ -22,6 +22,8 @@ function ResultsContent() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     async function fetchResult() {
@@ -48,26 +50,54 @@ function ResultsContent() {
           return;
         }
 
-        const data = await getMatchResult(resultId);
-        setResult(data);
+        try {
+          const data = await getMatchResult(resultId);
+          setResult(data);
+          setLoading(false);
+        } catch (err) {
+          // Check if we should retry (only for "still processing" errors)
+          if (
+            err instanceof Error &&
+            err.message.includes("still being processed") &&
+            retryCount < maxRetries
+          ) {
+            console.log(
+              `Results still processing, retrying in 2 seconds (${
+                retryCount + 1
+              }/${maxRetries})`
+            );
+            setTimeout(() => {
+              setRetryCount((prev) => prev + 1);
+            }, 2000);
+            return;
+          }
+
+          throw err;
+        }
       } catch (err) {
         console.error("Error fetching result:", err);
-        setError("Failed to load match results");
-      } finally {
+        setError(
+          err instanceof Error ? err.message : "Failed to load match results"
+        );
         setLoading(false);
       }
     }
 
     fetchResult();
-  }, [resultId, resultData]);
+  }, [resultId, resultData, retryCount]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto py-10 px-4">
-          <div className="flex justify-center items-center h-[50vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="flex flex-col justify-center items-center h-[50vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">
+              {retryCount > 0
+                ? `Loading results (attempt ${retryCount}/${maxRetries})...`
+                : "Loading results..."}
+            </p>
           </div>
         </main>
       </div>
@@ -200,10 +230,20 @@ function ResultsContent() {
     </div>
   );
 }
-
 export default function ResultsPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="container mx-auto py-10 px-4">
+            <div className="flex justify-center items-center h-[50vh]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </main>
+        </div>
+      }
+    >
       <ResultsContent />
     </Suspense>
   );
