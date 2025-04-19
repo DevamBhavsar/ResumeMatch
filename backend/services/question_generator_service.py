@@ -1,6 +1,7 @@
 from collections import Counter
 import logging
 import json
+import re
 
 import requests
 
@@ -13,6 +14,23 @@ class QuestionGeneratorService:
     def __init__(self, ollama_url="http://localhost:11434"):
         self.ollama_url = ollama_url
         logger.info("QuestionGeneratorService initialized")
+
+    def _clean_json_text(self, text):
+        """Clean up the text before JSON parsing"""
+        # Remove any thinking sections
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        # Find the first [ and last ]
+        start = text.find("[")
+        end = text.rfind("]") + 1 if text.rfind("]") >= 0 else len(text)
+        if start >= 0:
+            text = text[start:end]
+        # Remove any markdown code block markers
+        text = text.replace("```json", "").replace("```", "").strip()
+        # Remove control characters
+        text = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", text)
+        # Fix common JSON syntax issues
+        text = text.replace('\\"', '"').replace("\\n", " ")
+        return text
 
     def generate_questions(self, skills, job_description, num_questions=5):
         """
@@ -44,20 +62,23 @@ class QuestionGeneratorService:
                 
                 Focus on these key skills: {', '.join(most_common_skills)}
                 
-                For each question:
-                1. Make it specific and technical
-                2. Include a mix of conceptual and practical questions
-                3. Phrase questions in the second person (using "you" to address the candidate)
-                4. Provide a detailed answer that demonstrates expertise, also written in the second person
-                
-                Return ONLY valid JSON in the following format without any additional text or explanation:
+                IMPORTANT: You must respond ONLY with a JSON array containing exactly {num_questions} question-answer pairs.
+                Do not include any explanation, thinking process, or additional text.
+                Use this exact format:
                 [
-                {{
-                    "question": "How would you implement...",
-                    "answer": "You should approach this by..."
-                }},
-                ...
+                    {{
+                        "question": "Your technical question here?",
+                        "answer": "Your detailed technical answer here"
+                    }},
+                    {{
+                        "question": "Next question here?",
+                        "answer": "Next answer here"
+                    }}
                 ]
+
+                Each question must be specific and technical.
+                Each answer must be detailed and demonstrate expertise.
+                Use second person (you/your) in both questions and answers.
                 """
             else:
                 # If no job description, just use the skills
@@ -103,65 +124,28 @@ class QuestionGeneratorService:
                 generated_text = response.json().get("response", "")
                 logger.info(f"Generated text: {generated_text}")
 
-                # Remove thinking process if present
-                import re
-
-                generated_text = re.sub(
-                    r"<think>.*?</think>", "", generated_text, flags=re.DOTALL
-                )
-
-                # Try to parse JSON from the response
                 try:
-                    # Improved JSON extraction
-                    # Find the first [ and last ] to extract the JSON array
-                    json_start = generated_text.find("[")
-                    json_end = generated_text.rfind("]") + 1
+                    # Clean and parse JSON
+                    json_str = self._clean_json_text(generated_text)
+                    qa_pairs = json.loads(json_str)
 
-                    if json_start >= 0 and json_end > json_start:
-                        json_str = generated_text[json_start:json_end]
+                    # Validate the format
+                    validated_pairs = []
+                    for pair in qa_pairs:
+                        if (
+                            isinstance(pair, dict)
+                            and "question" in pair
+                            and "answer" in pair
+                        ):
+                            validated_pairs.append(pair)
 
-                        # Clean up the JSON string to handle potential formatting issues
-                        json_str = (
-                            json_str.replace("```json", "").replace("```", "").strip()
-                        )
-
-                        # Advanced cleaning of control characters and other problematic characters
-                        import re
-
-                        # Remove control characters
-                        json_str = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", json_str)
-                        # Fix common JSON syntax issues
-                        json_str = json_str.replace('\\"', '"').replace("\\n", " ")
-
-                        # Fix extra closing brackets
-                        if json_str.count("[") < json_str.count("]"):
-                            json_str = json_str[: json_str.rfind("]")] + "]"
-
-                        qa_pairs = json.loads(json_str)
-
-                        # Validate the format
-                        validated_pairs = []
-                        for pair in qa_pairs:
-                            if (
-                                isinstance(pair, dict)
-                                and "question" in pair
-                                and "answer" in pair
-                            ):
-                                validated_pairs.append(pair)
-
-                        if validated_pairs:
-                            return validated_pairs[
-                                :num_questions
-                            ]  # Limit to requested number
-                        else:
-                            logger.warning(
-                                "No valid question-answer pairs found in JSON"
-                            )
-                            return self._get_qa_pairs(most_common_skills)
+                    if validated_pairs:
+                        return validated_pairs[
+                            :num_questions
+                        ]  # Limit to requested number
                     else:
-                        logger.warning("No JSON array found in LLM response")
+                        logger.warning("No valid question-answer pairs found in JSON")
                         return self._get_qa_pairs(most_common_skills)
-
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse JSON from LLM response: {str(e)}")
                     # Try a more aggressive approach to extract JSON
