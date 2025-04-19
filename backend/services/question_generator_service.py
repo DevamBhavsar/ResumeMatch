@@ -101,6 +101,14 @@ class QuestionGeneratorService:
 
                 # Extract the generated text
                 generated_text = response.json().get("response", "")
+                logger.info(f"Generated text: {generated_text}")
+
+                # Remove thinking process if present
+                import re
+
+                generated_text = re.sub(
+                    r"<think>.*?</think>", "", generated_text, flags=re.DOTALL
+                )
 
                 # Try to parse JSON from the response
                 try:
@@ -124,6 +132,10 @@ class QuestionGeneratorService:
                         json_str = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", json_str)
                         # Fix common JSON syntax issues
                         json_str = json_str.replace('\\"', '"').replace("\\n", " ")
+
+                        # Fix extra closing brackets
+                        if json_str.count("[") < json_str.count("]"):
+                            json_str = json_str[: json_str.rfind("]")] + "]"
 
                         qa_pairs = json.loads(json_str)
 
