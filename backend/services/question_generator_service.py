@@ -40,7 +40,7 @@ class QuestionGeneratorService:
                 prompt = f"""
                 You are an expert technical interviewer. Generate {num_questions} interview questions with detailed answers for a position with the following job description:
                 
-                "{job_description[:2500]}..."
+                "{job_description[:500]}..."
                 
                 Focus on these key skills: {', '.join(most_common_skills)}
                 
@@ -52,11 +52,11 @@ class QuestionGeneratorService:
                 
                 Return ONLY valid JSON in the following format without any additional text or explanation:
                 [
-                  {{
+                {{
                     "question": "How would you implement...",
                     "answer": "You should approach this by..."
-                  }},
-                  ...
+                }},
+                ...
                 ]
                 """
             else:
@@ -74,11 +74,11 @@ class QuestionGeneratorService:
                 
                 Return ONLY valid JSON in the following format without any additional text or explanation:
                 [
-                  {{
+                {{
                     "question": "How would you implement...",
                     "answer": "You should approach this by..."
-                  }},
-                  ...
+                }},
+                ...
                 ]
                 """
 
@@ -113,8 +113,17 @@ class QuestionGeneratorService:
                         json_str = generated_text[json_start:json_end]
 
                         # Clean up the JSON string to handle potential formatting issues
-                        # Replace any triple backticks that might be in the response
-                        json_str = json_str.replace("", "").replace("", "").strip()
+                        json_str = (
+                            json_str.replace("```json", "").replace("```", "").strip()
+                        )
+
+                        # Advanced cleaning of control characters and other problematic characters
+                        import re
+
+                        # Remove control characters
+                        json_str = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", json_str)
+                        # Fix common JSON syntax issues
+                        json_str = json_str.replace('\\"', '"').replace("\\n", " ")
 
                         qa_pairs = json.loads(json_str)
 
@@ -144,25 +153,51 @@ class QuestionGeneratorService:
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse JSON from LLM response: {str(e)}")
                     # Try a more aggressive approach to extract JSON
-                    import re
+                    try:
+                        # Try to fix common JSON issues
+                        import re
 
-                    json_pattern = r"\[\s*\{.*?\}\s*\]"
-                    match = re.search(json_pattern, generated_text, re.DOTALL)
-                    if match:
-                        try:
-                            json_str = match.group(0)
-                            qa_pairs = json.loads(json_str)
-                            validated_pairs = [
-                                pair
-                                for pair in qa_pairs
-                                if isinstance(pair, dict)
-                                and "question" in pair
-                                and "answer" in pair
-                            ]
-                            if validated_pairs:
-                                return validated_pairs[:num_questions]
-                        except:
-                            pass
+                        # First attempt: Try to extract JSON array with regex
+                        json_pattern = r"\[\s*\{.*?\}\s*\]"
+                        match = re.search(json_pattern, generated_text, re.DOTALL)
+                        if match:
+                            try:
+                                json_str = match.group(0)
+                                # Clean control characters
+                                json_str = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", json_str)
+                                qa_pairs = json.loads(json_str)
+                                validated_pairs = [
+                                    pair
+                                    for pair in qa_pairs
+                                    if isinstance(pair, dict)
+                                    and "question" in pair
+                                    and "answer" in pair
+                                ]
+                                if validated_pairs:
+                                    return validated_pairs[:num_questions]
+                            except json.JSONDecodeError:
+                                pass
+
+                        # Second attempt: Try to manually construct JSON
+                        # Look for patterns like "question": "..." and "answer": "..."
+                        question_pattern = r'"question"\s*:\s*"([^"]*)"'
+                        answer_pattern = r'"answer"\s*:\s*"([^"]*)"'
+
+                        questions = re.findall(question_pattern, generated_text)
+                        answers = re.findall(answer_pattern, generated_text)
+
+                        if questions and answers and len(questions) == len(answers):
+                            qa_pairs = []
+                            for i in range(min(len(questions), num_questions)):
+                                qa_pairs.append(
+                                    {"question": questions[i], "answer": answers[i]}
+                                )
+                            if qa_pairs:
+                                return qa_pairs
+                    except Exception as regex_error:
+                        logger.warning(
+                            f"Failed to extract JSON with regex: {str(regex_error)}"
+                        )
 
                     return self._get_qa_pairs(most_common_skills)
 
