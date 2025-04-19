@@ -40,22 +40,21 @@ class QuestionGeneratorService:
                 prompt = f"""
                 You are an expert technical interviewer. Generate {num_questions} interview questions with detailed answers for a position with the following job description:
                 
-                "{job_description[:500]}..."
+                "{job_description[:2500]}..."
                 
                 Focus on these key skills: {', '.join(most_common_skills)}
                 
                 For each question:
                 1. Make it specific and technical
                 2. Include a mix of conceptual and practical questions
-                3. Provide a detailed answer that demonstrates expertise
-                4. Format as a JSON array of objects with "question" and "answer" fields
+                3. Phrase questions in the second person (using "you" to address the candidate)
+                4. Provide a detailed answer that demonstrates expertise, also written in the second person
                 
-                Return ONLY the JSON array without any additional text.
-                Example format:
+                Return ONLY valid JSON in the following format without any additional text or explanation:
                 [
                   {{
-                    "question": "What is...",
-                    "answer": "The answer is..."
+                    "question": "How would you implement...",
+                    "answer": "You should approach this by..."
                   }},
                   ...
                 ]
@@ -70,15 +69,14 @@ class QuestionGeneratorService:
                 For each question:
                 1. Make it specific and technical
                 2. Include a mix of conceptual and practical questions
-                3. Provide a detailed answer that demonstrates expertise
-                4. Format as a JSON array of objects with "question" and "answer" fields
+                3. Phrase questions in the second person (using "you" to address the candidate)
+                4. Provide a detailed answer that demonstrates expertise, also written in the second person
                 
-                Return ONLY the JSON array without any additional text.
-                Example format:
+                Return ONLY valid JSON in the following format without any additional text or explanation:
                 [
                   {{
-                    "question": "What is...",
-                    "answer": "The answer is..."
+                    "question": "How would you implement...",
+                    "answer": "You should approach this by..."
                   }},
                   ...
                 ]
@@ -89,7 +87,7 @@ class QuestionGeneratorService:
                 response = requests.post(
                     f"{self.ollama_url}/api/generate",
                     json={
-                        "model": "llama2",
+                        "model": "deepseek-r1:1.5b",
                         "prompt": prompt,
                         "stream": False,
                         "temperature": 0.7,
@@ -106,12 +104,18 @@ class QuestionGeneratorService:
 
                 # Try to parse JSON from the response
                 try:
-                    # Find JSON array in the text
+                    # Improved JSON extraction
+                    # Find the first [ and last ] to extract the JSON array
                     json_start = generated_text.find("[")
                     json_end = generated_text.rfind("]") + 1
 
                     if json_start >= 0 and json_end > json_start:
                         json_str = generated_text[json_start:json_end]
+
+                        # Clean up the JSON string to handle potential formatting issues
+                        # Replace any triple backticks that might be in the response
+                        json_str = json_str.replace("", "").replace("", "").strip()
+
                         qa_pairs = json.loads(json_str)
 
                         # Validate the format
@@ -124,15 +128,42 @@ class QuestionGeneratorService:
                             ):
                                 validated_pairs.append(pair)
 
-                        return validated_pairs[
-                            :num_questions
-                        ]  # Limit to requested number
+                        if validated_pairs:
+                            return validated_pairs[
+                                :num_questions
+                            ]  # Limit to requested number
+                        else:
+                            logger.warning(
+                                "No valid question-answer pairs found in JSON"
+                            )
+                            return self._get_qa_pairs(most_common_skills)
                     else:
-                        # If no JSON found, generate QA pairs manually
+                        logger.warning("No JSON array found in LLM response")
                         return self._get_qa_pairs(most_common_skills)
 
-                except json.JSONDecodeError:
-                    logger.warning("Failed to parse JSON from LLM response")
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse JSON from LLM response: {str(e)}")
+                    # Try a more aggressive approach to extract JSON
+                    import re
+
+                    json_pattern = r"\[\s*\{.*?\}\s*\]"
+                    match = re.search(json_pattern, generated_text, re.DOTALL)
+                    if match:
+                        try:
+                            json_str = match.group(0)
+                            qa_pairs = json.loads(json_str)
+                            validated_pairs = [
+                                pair
+                                for pair in qa_pairs
+                                if isinstance(pair, dict)
+                                and "question" in pair
+                                and "answer" in pair
+                            ]
+                            if validated_pairs:
+                                return validated_pairs[:num_questions]
+                        except:
+                            pass
+
                     return self._get_qa_pairs(most_common_skills)
 
             except requests.RequestException as e:
